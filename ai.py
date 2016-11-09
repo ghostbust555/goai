@@ -1,4 +1,7 @@
 import random
+from random import shuffle
+import go
+import randomai
 
 class AI:
     player = ''
@@ -20,15 +23,33 @@ class AI:
         return playerscore, enemyscore
 
 
+    def availableMoves(self, gamestate):
+        available = []
+
+        for x, row in gamestate:
+            for y, piece in row:
+                if piece == '-':
+                    available.append([x, y])\
+
+        return available
+
     def turn(self, gamestate):
 
-        x = random.randint(0, 8)
-        y = random.randint(0, 8)
+        available = shuffle(self.availableMoves(gamestate))
 
-        if gamestate[x][y] == "-":
-            me, enemy = self.score(gamestate)
-            if me + 10 < enemy:
-                print("forfeit")
-            return [y, x]
-        else:
-            return self.turn(gamestate)
+        for move in available:
+            ai1 = AI('x')
+            ai2 = randomai.RandomAI('o')
+
+            go.begin(lambda state: ai1.turn(state), lambda state: ai2.turn(state))
+
+
+        # if gamestate[x][y] == "-":
+        #     me, enemy = self.score(gamestate)
+        #     if me + 12 < enemy:
+        #         print("forfeit")
+        #         return "forfeit"
+        #
+        #     return [y, x]
+        # else:
+        #     return self.turn(gamestate)

@@ -368,14 +368,17 @@ def turn(playerTurn):
     global player2_pass
     global gameover
     global gsf
-    
+
     hold = 1
     while hold == 1:
         print()
         print('place for ' + xoro)
 
         turnResult = playerTurn(gsf)
-        if turnResult == 'pass':
+        if turnResult == 'forfeit':
+            gameover = 1
+            return
+        elif turnResult == 'pass':
             if xoro == 'o':
                 player1_pass = 1
             else:
@@ -428,7 +431,7 @@ def turn(playerTurn):
 
 
 ## Called to start a game
-def begin(player1turn, player2turn):
+def begin(player1turn, player2turn, initialState=None):
     ## Either 'o' or 'x', determines who's turn it is
     global xoro
     ## The opposite of xoro, determines who's turn it is not
@@ -463,7 +466,7 @@ def begin(player1turn, player2turn):
     global x_points
 
     ## Creates a blank game state - a blank board
-    gsc = initalize()
+    gsc = initalize() if initialState is None else initialState
     gsf = initalize()
     ## Sets initial values
     o_groups = []
