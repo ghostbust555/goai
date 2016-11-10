@@ -1,3 +1,4 @@
+import copy
 import random
 
 class RandomAI:
@@ -21,17 +22,37 @@ class RandomAI:
 
         return playerscore, enemyscore
 
-    def turn(self, gamestate):
+    def availableMoves(self, gamestate):
+        available = []
+
+        for x in range(len(gamestate)):
+            for y in range(len(gamestate[x])):
+                if gamestate[x][y] == '-':
+                    available.append([x, y])
+
+        return available
+
+    def place(self, gamestate, x, y):
+        gamestate[x][y] = self.player
+
+    def turn(self, gamestate, game):
 
         x = random.randint(0, self.boardsize - 1)
         y = random.randint(0, self.boardsize - 1)
 
         if gamestate[x][y] == "-":
-            me, enemy = self.score(gamestate)
-            if me + 12 < enemy:
-                print("forfeit")
-                return "forfeit"
+            newstate = copy.deepcopy(gamestate)
+            self.place(newstate, x, y)
 
-            return [y, x]
+            if game.testgoodmove(newstate):
+
+                me, enemy = self.score(gamestate)
+                if me + 12 < enemy:
+                    #print("forfeit")
+                    return "forfeit"
+
+                return [y, x]
+            else:
+                return self.turn(gamestate, game)
         else:
-            return self.turn(gamestate)
+            return self.turn(gamestate, game)

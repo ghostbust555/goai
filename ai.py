@@ -1,8 +1,20 @@
 import copy
 import random
+from concurrent.futures import ProcessPoolExecutor, wait, as_completed
+from queue import Queue
 from random import shuffle
+
+import sys
+
 import go
 import randomai
+
+
+CURSOR_UP_ONE = '\x1b[1A'
+ERASE_LINE = '\x1b[2K'
+
+TRIES_PER_STATE = 3
+MAX_WORKERS = 7
 
 class AI:
     player = ''
@@ -38,33 +50,57 @@ class AI:
 
         return available
 
-    def place(self, gamestate, x, y):
-        gamestate[x][y] = self.player
+    @staticmethod
+    def place(player, gamestate, x, y):
+        gamestate[x][y] = player
 
+    @staticmethod
+    def montecarlo(currentMove, boardsize, gamestate, player, otherPlayer):
+        score = 0
+        for i in range(TRIES_PER_STATE):
+            ai1 = randomai.RandomAI('x', boardsize)
+            ai2 = randomai.RandomAI('o', boardsize)
 
+            newstate = copy.deepcopy(gamestate)
+            AI.place(player, newstate, currentMove[0], currentMove[1])
 
-    def turn(self, gamestate):
+            game = go.Go()
+            res = game.begin(lambda state: ai1.turn(state, game), lambda state: ai2.turn(state, game), newstate, otherPlayer, False, boardsize)
+
+            if res == player:
+                score += 1
+            elif res != 'tie':
+                score -= 1
+
+        return [currentMove, score]
+
+    def turn(self, gamestate, game):
+        futures = []
         available = self.availableMoves(gamestate)
 
+        with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            #rank = []
+            for moveIdx in range(len(available)):
+                move = available[moveIdx]
 
-        rank = []
-        for move in range(len(available)):
-            rank.append([available[move], 0])
+                futures.append(executor.submit(AI.montecarlo, move, self.boardsize, gamestate, self.player, self.otherPlayer))
 
-            for i in range(5):
-                ai1 = randomai.RandomAI('x', self.boardsize)
-                ai2 = randomai.RandomAI('o', self.boardsize)
+                #print("Trying move ",moveIdx," of ",len(available))
+                #score = AI.montecarlo(move, self.boardsize, gamestate, self.player, self.otherPlayer, q)
 
-                newstate = copy.deepcopy(gamestate)
-                self.place(newstate, available[move][0], available[move][1])
+        results = list(wait(futures).done)
 
-                res = go.begin(lambda state: ai1.turn(state), lambda state: ai2.turn(state), newstate, self.otherPlayer, False, self.boardsize)
+        rank = [o._result for o in results]
 
-                if res == self.player:
-                    rank[move][1]+=1
-                elif res != 'tie':
-                    rank[move][1]-=1
+        bestmoves = sorted(rank, key=lambda x: x[1], reverse=True)
 
-        bestmove = max(rank, key=lambda x: x[1])
-        print(bestmove)
-        return bestmove[0]
+        for move in bestmoves:
+            newstate = copy.deepcopy(gamestate)
+            self.place(self.player, newstate, move[0][0], move[0][1])
+
+            if game.testgoodmove(newstate):
+                print(move)
+                return [move[0][1], move[0][0]]
+
+        print("BLOWING IT. Default to random")
+        return randomai.RandomAI(self.otherPlayer, self.boardsize).turn(gamestate)

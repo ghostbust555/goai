@@ -1,4 +1,5 @@
 import copy
+import time
 
 class Go:
 
@@ -7,7 +8,7 @@ class Go:
     restore_o = []
     restore_x = []
     xoro = 'x'
-    notxoro = 'y'
+    notxoro = 'o'
     player1_pass = 0
     player2_pass = 0
     gameover = 0
@@ -243,6 +244,11 @@ class Go:
         else:
             return 0
 
+    def testgoodmove(self, state):
+        if self.readable(state) not in self.gscache:
+            return True
+        else:
+            return False
 
     ## Checks if any groups contain the same point;
     ## if so, joins them into one group
@@ -378,9 +384,6 @@ class Go:
                 self.player1_pass = 0
                 self.player2_pass = 0
 
-
-                self.gsf[turnResult[1]][turnResult[0]] = self.xoro
-
                 ## The new piece is added to its group,
                 ## or a new group is created for it.
                 self.addpoint(turnResult, self.xoro)
@@ -446,7 +449,7 @@ class Go:
         ## Gives players turns until the end of the game
         ## (that is, until both players pass, one after
         ## the other)
-        if startingPlayer == 'x':
+        if startingPlayer == 'o':
             while self.gameover != 1:
 
                 ## Set it as o-player's turn
@@ -456,7 +459,11 @@ class Go:
                     print()
                     self.printboard(self.gsc)
 
+                start = time.clock()
                 self.turn(player1turn, showOutput)
+                if showOutput:
+                    print("{0} took {1:.2f}".format(self.xoro, time.clock() - start))
+
                 if self.gameover == 1:
                     break
 
@@ -467,29 +474,39 @@ class Go:
                     print()
                     self.printboard(self.gsc)
 
+                start = time.clock()
                 self.turn(player2turn, showOutput)
+                if showOutput:
+                    print("{0} took {1:.2f}".format(self.xoro, time.clock() - start))
         else:
             while self.gameover != 1:
 
                 ## Set it as o-player's turn
-                xoro = 'x'
-                notxoro = 'o'
+                self.xoro = 'x'
+                self.notxoro = 'o'
                 if showOutput:
                     print()
                     self.printboard(self.gsc)
 
+                start = time.clock()
                 self.turn(player1turn, showOutput)
+                if showOutput:
+                    print("{0} took {1:.2f}".format(self.xoro, time.clock() - start))
+
                 if self.gameover == 1:
                     break
 
                 ## Sets it as x-player's turn
-                xoro = 'o'
-                notxoro = 'x'
+                self.xoro = 'o'
+                self.notxoro = 'x'
                 if showOutput:
                     print()
                     self.printboard(self.gsc)
 
+                start = time.clock()
                 self.turn(player2turn, showOutput)
+                if showOutput:
+                    print("{0} took {1:.2f}".format(self.xoro, time.clock() - start))
 
         ## Counts the score of both players
         self.count()
