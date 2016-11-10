@@ -2,7 +2,10 @@ import go
 import ai
 import randomai
 
-ai1 = ai.AI('x')
-ai2 = randomai.RandomAI('o')
+boardsize = 5
 
-go.begin(lambda state: ai1.turn(state), lambda state: ai2.turn(state))
+ai1 = randomai.RandomAI('x', boardsize)
+ai2 = randomai.RandomAI('o', boardsize)
+
+game = go.Go()
+game.begin(lambda state: ai1.turn(state), lambda state: ai2.turn(state), None, 'x', True, boardsize)
