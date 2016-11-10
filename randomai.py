@@ -1,11 +1,12 @@
 import random
 
 class RandomAI:
-
+    boardsize = 9
     player = ''
 
-    def __init__(self, player):
+    def __init__(self, player, boardsize):
         self.player = player
+        self.boardsize = boardsize
 
     def score(self, gamestate):
         playerscore = 0
@@ -22,8 +23,8 @@ class RandomAI:
 
     def turn(self, gamestate):
 
-        x = random.randint(0, 8)
-        y = random.randint(0, 8)
+        x = random.randint(0, self.boardsize - 1)
+        y = random.randint(0, self.boardsize - 1)
 
         if gamestate[x][y] == "-":
             me, enemy = self.score(gamestate)
