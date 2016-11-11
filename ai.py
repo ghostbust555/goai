@@ -1,6 +1,6 @@
 import copy
 import random
-from concurrent.futures import ProcessPoolExecutor, wait, as_completed
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait, as_completed
 from queue import Queue
 from random import shuffle
 
@@ -15,6 +15,8 @@ ERASE_LINE = '\x1b[2K'
 
 TRIES_PER_STATE = 3
 MAX_WORKERS = 7
+
+USE_MUTITHREAD = False
 
 class AI:
     player = ''
@@ -74,24 +76,16 @@ class AI:
 
         return [currentMove, score]
 
-    def turn(self, gamestate, game):
-        futures = []
+    def turnSingleThread(self, gamestate, game):
         available = self.availableMoves(gamestate)
 
-        with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            #rank = []
-            for moveIdx in range(len(available)):
-                move = available[moveIdx]
+        rank = []
+        for moveIdx in range(len(available)):
+            move = available[moveIdx]
+            res = AI.montecarlo(move, self.boardsize, gamestate, self.player, self.otherPlayer)
+            rank.append(res)
 
-                futures.append(executor.submit(AI.montecarlo, move, self.boardsize, gamestate, self.player, self.otherPlayer))
-
-                #print("Trying move ",moveIdx," of ",len(available))
-                #score = AI.montecarlo(move, self.boardsize, gamestate, self.player, self.otherPlayer, q)
-
-        results = list(wait(futures).done)
-
-        rank = [o._result for o in results]
-
+        rank = filter(lambda x: x[1] is not None, rank)
         bestmoves = sorted(rank, key=lambda x: x[1], reverse=True)
 
         for move in bestmoves:
@@ -103,4 +97,40 @@ class AI:
                 return [move[0][1], move[0][0]]
 
         print("BLOWING IT. Default to random")
-        return randomai.RandomAI(self.otherPlayer, self.boardsize).turn(gamestate)
+        return randomai.RandomAI(self.otherPlayer, self.boardsize).turn(gamestate, game)
+
+    def turn(self, gamestate, game):
+        if USE_MUTITHREAD:
+            futures = []
+            available = self.availableMoves(gamestate)
+
+            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+                #rank = []
+                for moveIdx in range(len(available)):
+                    move = available[moveIdx]
+
+                    futures.append(executor.submit(AI.montecarlo, move, self.boardsize, gamestate, self.player, self.otherPlayer))
+
+                    #print("Trying move ",moveIdx," of ",len(available))
+                    #score = AI.montecarlo(move, self.boardsize, gamestate, self.player, self.otherPlayer, q)
+
+            results = list(wait(futures).done)
+
+            rank = [o._result for o in results]
+            rank = filter(lambda x: x[1] is not None, rank)
+
+            bestmoves = sorted(rank, key=lambda x: x[1], reverse=True)
+
+            for move in bestmoves:
+                newstate = copy.deepcopy(gamestate)
+                self.place(self.player, newstate, move[0][0], move[0][1])
+
+                if game.testgoodmove(newstate):
+                    print(move)
+                    return [move[0][1], move[0][0]]
+
+            print("BLOWING IT. Default to random")
+            return randomai.RandomAI(self.otherPlayer, self.boardsize).turn(gamestate, game)
+
+        else:
+            self.turnSingleThread(gamestate, game)
