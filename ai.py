@@ -8,12 +8,12 @@ import sys
 
 import go
 import randomai
-
+from gotest import GoTest
 
 CURSOR_UP_ONE = '\x1b[1A'
 ERASE_LINE = '\x1b[2K'
 
-TRIES_PER_STATE = 3
+TRIES_PER_STATE = 10
 MAX_WORKERS = 7
 
 USE_MUTITHREAD = False
@@ -66,7 +66,7 @@ class AI:
             newstate = copy.deepcopy(gamestate)
             AI.place(player, newstate, currentMove[0], currentMove[1])
 
-            game = go.Go()
+            game = GoTest()
             res = game.begin(lambda state: ai1.turn(state, game), lambda state: ai2.turn(state, game), newstate, otherPlayer, False, boardsize)
 
             if res == player:
@@ -96,8 +96,7 @@ class AI:
                 print(move)
                 return [move[0][1], move[0][0]]
 
-        print("BLOWING IT. Default to random")
-        return randomai.RandomAI(self.otherPlayer, self.boardsize).turn(gamestate, game)
+        return 'forfeit'
 
     def turn(self, gamestate, game):
         if USE_MUTITHREAD:
@@ -129,8 +128,7 @@ class AI:
                     print(move)
                     return [move[0][1], move[0][0]]
 
-            print("BLOWING IT. Default to random")
-            return randomai.RandomAI(self.otherPlayer, self.boardsize).turn(gamestate, game)
+            return 'forfeit'
 
         else:
-            self.turnSingleThread(gamestate, game)
+            return self.turnSingleThread(gamestate, game)

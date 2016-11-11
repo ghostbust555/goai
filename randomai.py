@@ -36,23 +36,14 @@ class RandomAI:
         gamestate[x][y] = self.player
 
     def turn(self, gamestate, game):
+        available = self.availableMoves(gamestate)
+        random.shuffle(available)
 
-        x = random.randint(0, self.boardsize - 1)
-        y = random.randint(0, self.boardsize - 1)
-
-        if gamestate[x][y] == "-":
+        for move in available:
             newstate = copy.deepcopy(gamestate)
-            self.place(newstate, x, y)
+            self.place(newstate, move[0], move[1])
 
             if game.testgoodmove(newstate):
+                return [move[1], move[0]]
 
-                me, enemy = self.score(gamestate)
-                if me + 12 < enemy:
-                    #print("forfeit")
-                    return "forfeit"
-
-                return [y, x]
-            else:
-                return self.turn(gamestate, game)
-        else:
-            return self.turn(gamestate, game)
+        return 'forfeit'
