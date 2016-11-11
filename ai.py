@@ -18,6 +18,7 @@ MAX_WORKERS = 7
 
 USE_MUTITHREAD = True
 
+
 class AI:
     player = ''
     otherPlayer = ''
@@ -63,7 +64,7 @@ class AI:
             ai1 = randomai.RandomAI('x', boardsize)
             ai2 = randomai.RandomAI('o', boardsize)
 
-            newstate = copy.deepcopy(gamestate)
+            newstate = GoTest.copyState(gamestate)
             AI.place(player, newstate, currentMove[0], currentMove[1])
 
             game = GoTest()
@@ -89,7 +90,7 @@ class AI:
         bestmoves = sorted(rank, key=lambda x: x[1], reverse=True)
 
         for move in bestmoves:
-            newstate = copy.deepcopy(gamestate)
+            newstate = GoTest.copyState(gamestate)
             self.place(self.player, newstate, move[0][0], move[0][1])
 
             if game.testgoodmove(newstate):
@@ -114,11 +115,12 @@ class AI:
 
             rank = [o._result for o in results]
             rank = filter(lambda x: x[1] is not None, rank)
+            rank = filter(lambda x: x[1] is not None, rank)
 
             bestmoves = sorted(rank, key=lambda x: x[1], reverse=True)
 
             for move in bestmoves:
-                newstate = copy.deepcopy(gamestate)
+                newstate = GoTest.copyState(gamestate)
                 self.place(self.player, newstate, move[0][0], move[0][1])
 
                 if game.testgoodmove(newstate):

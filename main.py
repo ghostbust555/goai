@@ -3,7 +3,7 @@ import ai
 import randomai
 from gotest import GoTest
 
-boardsize = 9
+boardsize = 11
 
 def main():
     ai1 = ai.AI('x', boardsize)

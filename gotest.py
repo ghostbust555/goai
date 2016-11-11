@@ -46,35 +46,46 @@ class GoTest:
     def addpoint(self, x, y, xoro):
         self.gsf[x][y] = xoro
 
-    def getAdjacentDiagonal(self, x, y):
+    @staticmethod
+    def getAdjacentDiagonal(x, y, boardsize):
         result = []
 
+        oneLessBoardsize = boardsize - 1
+        oneLessX = x-1
+        oneLessY = y-1
+        oneMoreX = x+1
+        oneMoreY = y+1
+
         if x > 0 and y > 0:
-            result.append([x - 1,y - 1])
+            result.append([oneLessX,oneLessY])
 
-        if x > 0 and y < self.boardsize - 1:
-            result.append([x - 1, y + 1])
+        if x > 0 and y < oneLessBoardsize:
+            result.append([oneLessX, oneMoreY])
 
-        if x < self.boardsize - 1 and y < self.boardsize - 1:
-            result.append([x + 1, y + 1])
+        if x < boardsize - 1 and y < oneLessBoardsize:
+            result.append([oneMoreX, oneMoreY])
 
-        if x < self.boardsize - 1 and y > 0:
-            result.append([x + 1, y - 1])
+        if x < oneLessBoardsize and y > 0:
+            result.append([oneMoreX, oneLessY])
 
         return result
 
-    def getAdjacentCardinal(self, x, y):
+    @staticmethod
+    def getAdjacentCardinal(x, y, boardsize):
         result = []
+
+        oneLessBoardsize = boardsize - 1
+
         if x > 0:
             result.append([x-1,y])
 
         if y > 0:
             result.append([x, y-1])
 
-        if x < self.boardsize - 1:
+        if x < oneLessBoardsize:
             result.append([x + 1, y])
 
-        if y < self.boardsize - 1:
+        if y < oneLessBoardsize:
             result.append([x, y + 1])
 
         return result
@@ -92,7 +103,7 @@ class GoTest:
             y = vertex[1]
             if state[x][y] == xoro and vertex not in visited:
                 visited.add(vertex)
-                cardinal = self.getAdjacentCardinal(x, y)
+                cardinal = GoTest.getAdjacentCardinal(x, y, self.boardsize)
                 queue.extend(cardinal)
 
                 if captured:
@@ -101,7 +112,7 @@ class GoTest:
                             captured = False
                             break
 
-                queue.extend(self.getAdjacentDiagonal(x, y))
+                queue.extend(GoTest.getAdjacentDiagonal(x, y, self.boardsize))
 
         return visited, captured
 
@@ -150,8 +161,13 @@ class GoTest:
 
         return myscore, enemyscore
 
+    @staticmethod
+    def copyState(state):
+        copy = [x[:] for x in state]
+        return copy
+
     def turn(self, playerTurn, showOutput=False):
-        self.gsf = copy.deepcopy(self.gsc)
+        self.gsf = GoTest.copyState(self.gsc)
 
         if showOutput:
             print()
@@ -210,7 +226,7 @@ class GoTest:
 
         ## Creates a blank game state - a blank board
         self.gsc = self.initalize() if initialState is None else initialState
-        self.gsf = copy.deepcopy(self.gsc)
+        self.gsf = GoTest.copyState(self.gsc)
         ## Sets initial values
         self.o_groups = []
         self.x_groups = []
