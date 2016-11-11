@@ -6,7 +6,7 @@ from gotest import GoTest
 boardsize = 9
 
 def main():
-    ai1 = randomai.RandomAI('x', boardsize)
+    ai1 = ai.AI('x', boardsize)
     ai2 = randomai.RandomAI('o', boardsize)
 
     game = GoTest()

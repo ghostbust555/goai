@@ -10,6 +10,9 @@ class GoTest:
     o_groups = []
     x_groups = []
 
+    o_points = []
+    x_points = []
+
     def initalize(self):
         gs = []
         for i in range(0, self.boardsize):
@@ -134,6 +137,19 @@ class GoTest:
         else:
             return False
 
+    def getScores(self, state, xoro):
+        myscore = 0
+        enemyscore = 0
+
+        for x in range(len(state)):
+            for y in range(len(state[x])):
+                if state[x][y] == xoro:
+                    myscore += 1
+                elif state[x][y] != '-':
+                    enemyscore += 1
+
+        return myscore, enemyscore
+
     def turn(self, playerTurn, showOutput=False):
         self.gsf = copy.deepcopy(self.gsc)
 
@@ -160,7 +176,6 @@ class GoTest:
             ## or a new group is created for it.
             self.addpoint(turnResult[1], turnResult[0], self.xoro)
             self.groupPiecesAndCapture(self.gsf)
-            self.
 
             ## Checks to see if the move, given all the
             ## captures it causes, would return the board
@@ -175,6 +190,19 @@ class GoTest:
                 self.gscache += self.readable(self.gsf)
 
         if (self.player1_pass == 1) & (self.player2_pass == 1):
+            self.gameover = 1
+            return
+
+        myscore, enemyscore = self.getScores(self.gsc, self.xoro)
+
+        if self.xoro == 'o':
+            self.o_points = myscore
+            self.x_points = enemyscore
+        else:
+            self.x_points = myscore
+            self.o_points = enemyscore
+
+        if myscore + 10 < enemyscore:
             self.gameover = 1
 
     def begin(self, player1turn, player2turn, initialState=None, startingPlayer='x', showOutput = False, board_size=9):

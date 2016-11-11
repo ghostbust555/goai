@@ -13,10 +13,10 @@ from gotest import GoTest
 CURSOR_UP_ONE = '\x1b[1A'
 ERASE_LINE = '\x1b[2K'
 
-TRIES_PER_STATE = 10
+TRIES_PER_STATE = 5
 MAX_WORKERS = 7
 
-USE_MUTITHREAD = False
+USE_MUTITHREAD = True
 
 class AI:
     player = ''
@@ -103,15 +103,12 @@ class AI:
             futures = []
             available = self.availableMoves(gamestate)
 
-            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
                 #rank = []
                 for moveIdx in range(len(available)):
                     move = available[moveIdx]
 
                     futures.append(executor.submit(AI.montecarlo, move, self.boardsize, gamestate, self.player, self.otherPlayer))
-
-                    #print("Trying move ",moveIdx," of ",len(available))
-                    #score = AI.montecarlo(move, self.boardsize, gamestate, self.player, self.otherPlayer, q)
 
             results = list(wait(futures).done)
 
