@@ -1,30 +1,18 @@
 import copy
 import time
 
-class Go:
+import ai
+import randomai
 
+
+class Go:
     boardsize = 5
-    gameon = 1
-    restore_o = []
-    restore_x = []
-    xoro = 'x'
-    notxoro = 'o'
-    player1_pass = 0
-    player2_pass = 0
-    gameover = 0
-    gsf = []
-    gsc = []
-    gsp = []
     o_groups = []
     x_groups = []
-    non_groups = []
-    gscache = []
-    o_points = 0
-    x_points = 0
-    edited = False
 
+    o_points = []
+    x_points = []
 
-    ## Generates blank game states
     def initalize(self):
         gs = []
         for i in range(0, self.boardsize):
@@ -43,92 +31,8 @@ class Go:
                 rowprint += ' '
             print(rowprint)
 
+            ## Returns a string that describes the game state
 
-    ## Returns a list of the board positions surrounding the
-    ## passed group.
-    def gperm(self, group):
-        permimeter = []
-        hit = 0
-        loss = 0
-        ## Adds permimeter spots below
-        ## Works by looking from top to bottom, left to right,
-        ## at each posisition on the board.  When a posistion
-        ## is hit that is in the given group, I set hit = 1.
-        ## Then, at the next position that is not in that group,
-        ## or if the end of the column is reached, I set loss = 1.
-        ## That point is the first point below a point in that group,
-        ## so it is part of the permieter of that group.
-        i = 0
-        j = 0
-        while i < self.boardsize:
-            j = 0
-            hit = 0
-            while j < self.boardsize:
-                if [i, j] in group:
-                    hit = 1
-                elif (hit == 1) & ([i, j] not in group):
-                    loss = 1
-                if (hit == 1) & (loss == 1):
-                    permimeter.append([i, j])
-                    hit = 0
-                    loss = 0
-                j += 1
-            i += 1
-        ## Adds permimeter spots to the right
-        i = 0
-        j = 0
-        while i < self.boardsize:
-            j = 0
-            hit = 0
-            while j < self.boardsize:
-                if [j, i] in group:
-                    hit = 1
-                elif (hit == 1) & ([j, i] not in group):
-                    loss = 1
-                if (hit == 1) & (loss == 1):
-                    permimeter.append([j, i])
-                    hit = 0
-                    loss = 0
-                j += 1
-            i += 1
-        ## Adds permimeter spots above
-        i = 0
-        j = self.boardsize - 1
-        while i < self.boardsize:
-            j = self.boardsize - 1
-            hit = 0
-            while j >= 0:
-                if [i, j] in group:
-                    hit = 1
-                elif (hit == 1) & ([i, j] not in group):
-                    loss = 1
-                if (hit == 1) & (loss == 1):
-                    permimeter.append([i, j])
-                    hit = 0
-                    loss = 0
-                j -= 1
-            i += 1
-        ## Adds permimeter spots to the left
-        i = 0
-        j = self.boardsize - 1
-        while i < self.boardsize:
-            j = self.boardsize - 1
-            hit = 0
-            while j >= 0:
-                if [j, i] in group:
-                    hit = 1
-                elif (hit == 1) & ([j, i] not in group):
-                    loss = 1
-                if (hit == 1) & (loss == 1):
-                    permimeter.append([j, i])
-                    hit = 0
-                    loss = 0
-                j -= 1
-            i += 1
-        return permimeter
-
-
-    ## Returns a string that describes the game state
     @staticmethod
     def readable(gs):
         readthis = ''
@@ -139,110 +43,104 @@ class Go:
         readthis += '>>'
         return readthis
 
+    def addpoint(self, x, y, xoro):
+        self.gsf[x][y] = xoro
 
-    ## Counts the territory captured by each player
-    def count(self):
-        ## Creates a list of groups (non_groups) of empty positions.
-        for i in range(0, self.boardsize):
-            for j in range(0, self.boardsize):
-                if self.gsc[j][i] == '-':
-                    new = 1
-                    for group in self.non_groups:
-                        if [i, j] in self.gperm(group):
-                            group.append([i, j])
-                            new = 0
-                    if new == 1:
-                        self.non_groups.append([[i, j]])
-        self.concat('-')
+    @staticmethod
+    def getAdjacentDiagonal(x, y, boardsize):
+        result = []
 
-        self.o_points = 0
-        self.x_points = 0
+        oneLessBoardsize = boardsize - 1
+        oneLessX = x-1
+        oneLessY = y-1
+        oneMoreX = x+1
+        oneMoreY = y+1
 
-        ## Gives a point to the each player for every pebble they have
-        ## on the board.
-        for group in self.o_groups:
-            self.o_points += len(group)
-        for group in self.x_groups:
-            self.x_points += len(group)
+        if x > 0 and y > 0:
+            result.append([oneLessX,oneLessY])
 
-        ## The permimeter of these empty positions is here considered,
-        ## and if every position in the permimeter of a non_group is
-        ## one player or the other, that player gains a number of points
-        ## equal to the length of that group (the number of positions
-        ## that their pieces enclose).
-        for group in self.non_groups:
-            no = 0
-            for element in self.gperm(group):
-                if self.gsc[element[1]][element[0]] != 'o':
-                    no = 1
-            if no == 0:
-                self.o_points += len(group)
+        if x > 0 and y < oneLessBoardsize:
+            result.append([oneLessX, oneMoreY])
 
-        for group in self.non_groups:
-            no = 0
-            for element in self.gperm(group):
-                if self.gsc[element[1]][element[0]] != 'x':
-                    no = 1
-            if no == 0:
-                self.x_points += len(group)
+        if x < boardsize - 1 and y < oneLessBoardsize:
+            result.append([oneMoreX, oneMoreY])
 
+        if x < oneLessBoardsize and y > 0:
+            result.append([oneMoreX, oneLessY])
 
-    ## Checks for capture, and removes the captured pieces from the board
-    def capture(self,xoro):
-        if xoro == 'o':
-            groups = self.x_groups
-            otherplayer = 'o'
-        else:
-            groups = self.o_groups
-            otherplayer = 'x'
+        return result
 
-        ## Checks to see, for each group of a particular player,
-        ## whether any of the board positions in the
-        ## perimeter around that group are held by the other player.
-        ## If any position is not held by the other player,
-        ## the group is not captured, and is safe.  Otherwise,
-        ## the group is removed.  But we haven't tested this yet
-        ## to see if this would return the board to a previous
-        ## state, so we save the removed groups with the restore lists.
-        for group in groups:
-            safe = 0
-            for element in self.gperm(group):
-                if self.gsf[element[1]][element[0]] != otherplayer:
-                    safe = 1
-            if safe != 1:
-                self.edited = 1
-                if xoro == 'o':
-                    self.restore_x.append(group)
-                else:
-                    self.restore_o.append(group)
-                groups.remove(group)
+    @staticmethod
+    def getAdjacentCardinal(x, y, boardsize):
+        result = []
 
-        # Sets gsf given the new captures
-        self.gsf = self.initalize()
-        for group in self.o_groups:
-            for point in group:
-                self.gsf[point[1]][point[0]] = 'o'
-        for group in self.x_groups:
-            for point in group:
-                self.gsf[point[1]][point[0]] = 'x'
+        oneLessBoardsize = boardsize - 1
+
+        if x > 0:
+            result.append([x-1,y])
+
+        if y > 0:
+            result.append([x, y-1])
+
+        if x < oneLessBoardsize:
+            result.append([x + 1, y])
+
+        if y < oneLessBoardsize:
+            result.append([x, y + 1])
+
+        return result
 
 
-    ## Checks to see if the new game state, created by the most recent
-    ## move, returns the board to a previous state.  If not, then
-    ## gsc is set as this new state, and gsp is set as what gsc was, and
-    ## the new game state is stored in gscache.  The function returns 1
-    ## if the move is valid, 0 otherwise.
-    def goodmove(self):
-        if self.readable(self.gsf) not in self.gscache:
-            self.gsp = []
-            self.gsc = []
-            for element in self.gsf:
-                self.gsp.append(element)
-                self.gsc.append(element)
-            self.gscache += self.readable(self.gsf)
-            return 1
-        else:
-            return 0
+    def findMyGroup(self,x,y,state):
+        visited, queue = set(), [[x, y]]
+        captured = True
+
+        xoro = state[x][y]
+
+        while queue:
+            vertex = tuple(queue.pop(0))
+            x = vertex[0]
+            y = vertex[1]
+            if state[x][y] == xoro and vertex not in visited:
+                visited.add(vertex)
+                cardinal = Go.getAdjacentCardinal(x, y, self.boardsize)
+                queue.extend(cardinal)
+
+                if captured:
+                    for car in cardinal:
+                        if state[car[0]][car[1]] == '-':
+                            captured = False
+                            break
+
+                queue.extend(Go.getAdjacentDiagonal(x, y, self.boardsize))
+
+        return visited, captured
+
+    def removeGroup(self,group,state):
+        for m in group:
+            state[m[0]][m[1]] = '-'
+
+    def groupPiecesAndCapture(self, state):
+        seenBoard = self.initalize()
+
+        self.x_groups = []
+        self.o_groups = []
+
+        for x in range(len(state)):
+            for y in range(len(state[x])):
+                if seenBoard[x][y] == '-' and state[x][y] != '-':
+                    group, captured = self.findMyGroup(x, y, state)
+                    if captured:
+                        self.removeGroup(group,state)
+                    elif state[x][y] == 'x':
+                        self.x_groups.append(group)
+                    elif state[x][y] == 'o':
+                        self.o_groups.append(group)
+
+                    for m in group:
+                        seenBoard[m[0]][m[1]] = "+"
+
+        return self.x_groups, self.o_groups
 
     def testgoodmove(self, state):
         if self.readable(state) not in self.gscache:
@@ -250,191 +148,85 @@ class Go:
         else:
             return False
 
-    ## Checks if any groups contain the same point;
-    ## if so, joins them into one group
-    def concat(self,xoro):
-        if xoro == 'o':
-            groups = self.o_groups
-        elif xoro == 'x':
-            groups = self.x_groups
-        else:
-            groups = self.non_groups
-        i = 0
-        ## currentgroups and previousgroups are used to compare the number
-        ## of groups before this nest of whiles to the number after.  If
-        ## The number is the same, then nothing needed to be concatinated,
-        ## and we can move on.  If the number is different, two groups
-        ## were concatinated, and we need to run through this nest again
-        ## to see if any other groups need to be joined together.
-        currentgroups = len(groups)
-        previousgroups = currentgroups + 1
-        ## Checks if the positions contained in any group are to be
-        ## found in any other group.  If so, all elements of the second are
-        ## added to the first, and the first is deleted.
-        while previousgroups != currentgroups:
-            while i < len(groups) - 1:
-                reset = 0
-                j = i + 1
-                while j < len(groups):
-                    k = 0
-                    while k < len(groups[i]):
-                        if groups[i][k] in groups[j]:
-                            for element in groups[j]:
-                                if element not in groups[i]:
-                                    groups[i].append(element)
-                            groups.remove(groups[j])
-                            reset = 1
-                        if reset == 1:
-                            break
-                        k += 1
-                    j += 1
-                if reset == 1:
-                    i = -1
-                i += 1
-            previousgroups = currentgroups
-            currentgroups = len(groups)
+    def getScores(self, state, xoro):
+        myscore = 0
+        enemyscore = 0
 
+        for x in range(len(state)):
+            for y in range(len(state[x])):
+                if state[x][y] == xoro:
+                    myscore += 1
+                elif state[x][y] != '-':
+                    enemyscore += 1
 
-    ## Adds point xy to a group if xy is in the
-    ## perimeter of an existing group, or creates
-    ## new group if xy is not a part of any existing group.
-    def addpoint(self,xy, xoro):
-        if xoro == 'o':
-            groups = self.o_groups
-        else:
-            groups = self.x_groups
-        new = 1
-        for group in groups:
-            if xy in self.gperm(group):
-                group.append(xy)
-                new = 0
-        if new == 1:
-            groups.append([xy])
+        return myscore, enemyscore
 
+    @staticmethod
+    def copyState(state):
+        copy = [x[:] for x in state]
+        return copy
 
-    ## Lets the player select a move.
-    def selectmove(self, xoro):
-        hold = 1
-        while hold == 1:
-
-            minihold = 1
-            while minihold == 1:
-                pp = input('Place or pass (l/a)? ')
-                if pp == 'a':
-                    return 'pass'
-                elif pp == 'l':
-                    minihold = 0
-                    ## This try...except ensures that the user
-                    ## inputs only numbers
-                    error = 0
-                    try:
-                        x = int(input('x: '))
-                    except ValueError:
-                        error = 1
-                    try:
-                        y = int(input('y: '))
-                    except ValueError:
-                        error = 1
-                    if error == 1:
-                        minihold = 1
-                        print('invalid')
-                else:
-                    print('invalid')
-            ## Ensures that the input is on the board
-            if (x > self.boardsize) | (x < 0) | (y > self.boardsize) | (y < 0):
-                print('invalid')
-            elif self.gsc[y][x] != '-':
-                print('invalid')
-            else:
-                hold = 0
-        ## Places the piece on the 'future' board, the board
-        ## used to test if a move is valid
-        if xoro == 'o':
-            self.gsf[y][x] = 'o'
-        else:
-            self.gsf[y][x] = 'x'
-
-        return [x, y]
-
-
-    ## The 'turn,' in which a player makes a move,
-    ## the captures caused by that piece are made,
-    ## the validity of the move is checked, and
-    ## the endgame status is checked.
     def turn(self, playerTurn, showOutput=False):
+        self.gsf = Go.copyState(self.gsc)
 
-        hold = 1
-        while hold == 1:
-            if showOutput:
-                print()
-                print('place for ' + self.xoro)
+        if showOutput:
+            print()
+            print('place for ' + self.xoro)
 
-            turnResult = playerTurn(self.gsf)
-            if turnResult == 'forfeit':
-                self.gameover = 1
-                return
-            elif turnResult == 'pass':
-                if self.xoro == 'o':
-                    self.player1_pass = 1
-                else:
-                    self.player2_pass = 1
-                hold = 0
-            ## If the player doesn't pass...
+        turnResult = playerTurn(self.gsf)
+        if turnResult == 'forfeit':
+            self.gameover = 1
+            return
+        elif turnResult == 'pass':
+            if self.xoro == 'o':
+                self.player1_pass = True
             else:
-                self.player1_pass = 0
-                self.player2_pass = 0
+                self.player2_pass = True
 
-                ## The new piece is added to its group,
-                ## or a new group is created for it.
-                self.addpoint(turnResult, self.xoro)
-                ## Groups that have been connected by
-                ## the this placement are joined together
-                self.concat(self.xoro)
-                minihold = 1
-                ## Edited is a value used to check
-                ## whether any capture is made.  capture()
-                ## is called as many times as until no pieces
-                ## are capture (until edited does not change
-                ## to 1)
-                edited = 0
-                while minihold == 1:
-                    self.restore_o = []
-                    self.restore_x = []
-                    self.capture(self.xoro)
-                    self.capture(self.notxoro)
-                    if edited == 0:
-                        minihold = 0
-                        edited = 0
-                    else:
-                        edited = 0
-                ## Checks to see if the move, given all the
-                ## captures it causes, would return the board
-                ## to a previous game state.
-                if self.goodmove() == 1:
-                    hold = 0
+        ## If the player doesn't pass...
+        else:
+            self.player1_pass = False
+            self.player2_pass = False
 
-                ## If the move is invalid, the captured groups need
-                ## to be returned to the board, so we use
-                ## the groups stored in the restore lists to
-                ## restore the o_ and x_groups lists.
-                else:
-                    if showOutput:
-                        print('invalid move - that returns to board to a previous state')
-                    for group in self.restore_o:
-                        self.o_groups.append(group)
-                    for group in self.restore_x:
-                        self.x_groups.append(group)
+            ## The new piece is added to its group,
+            ## or a new group is created for it.
+            self.addpoint(turnResult[1], turnResult[0], self.xoro)
+            self.groupPiecesAndCapture(self.gsf)
+
+            ## Checks to see if the move, given all the
+            ## captures it causes, would return the board
+            ## to a previous game state.
+            if not self.testgoodmove(self.gsf):
+                if showOutput:
+                    print('invalid move - that returns to board to a previous state')
+
+                self.turn(playerTurn,showOutput)
+            else:
+                self.gsc = self.gsf
+                self.gscache += self.readable(self.gsf)
+
         if (self.player1_pass == 1) & (self.player2_pass == 1):
             self.gameover = 1
+            return
 
+        myscore, enemyscore = self.getScores(self.gsc, self.xoro)
 
-    ## Called to start a game
+        if self.xoro == 'o':
+            self.o_points = myscore
+            self.x_points = enemyscore
+        else:
+            self.x_points = myscore
+            self.o_points = enemyscore
+
+        if myscore + 10 < enemyscore:
+            self.gameover = 1
+
     def begin(self, player1turn, player2turn, initialState=None, startingPlayer='x', showOutput = False, board_size=9):
         self.boardsize = board_size
 
         ## Creates a blank game state - a blank board
         self.gsc = self.initalize() if initialState is None else initialState
-        self.gsf = copy.deepcopy(self.gsc)
+        self.gsf = Go.copyState(self.gsc)
         ## Sets initial values
         self.o_groups = []
         self.x_groups = []
@@ -508,8 +300,6 @@ class Go:
                 if showOutput:
                     print("{0} took {1:.2f}".format(self.xoro, time.clock() - start))
 
-        ## Counts the score of both players
-        self.count()
         if showOutput:
             print()
             print('final board:')
@@ -533,3 +323,21 @@ class Go:
             if showOutput:
                 print('tie')
             return 'tie'
+
+
+# boardsize = 5
+# ai1 = ai.AI('x', boardsize)
+# ai2 = randomai.RandomAI('o', boardsize)
+#
+# game = GoTest()
+#
+# initstate = [['o','-','-','o','o'],
+#              ['o','-','-','o','x'],
+#              ['o','-','-','o','x'],
+#              ['o','-','-','o','x'],
+#              ['-','-','-','o','o']]
+# game.printboard(initstate)
+# #game.groupPiecesAndCapture(initstate)
+#
+#
+# game.begin(lambda state: ai1.turn(state, game), lambda state: ai2.turn(state, game), None, 'x', True, boardsize)

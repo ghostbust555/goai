@@ -1,7 +1,7 @@
 import copy
 import random
 
-from gotest import GoTest
+from go import Go
 
 
 class RandomAI:
@@ -43,7 +43,7 @@ class RandomAI:
         random.shuffle(available)
 
         for move in available:
-            newstate = GoTest.copyState(gamestate)
+            newstate = Go.copyState(gamestate)
             self.place(newstate, move[0], move[1])
 
             if game.testgoodmove(newstate):
