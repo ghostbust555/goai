@@ -6,6 +6,7 @@ from random import shuffle
 
 import sys
 
+import go
 import randomai
 from go import Go
 

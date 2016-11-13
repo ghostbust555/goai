@@ -1,4 +1,8 @@
+import copy
 import random
+
+from go import Go
+
 
 class RandomAI:
     boardsize = 9
@@ -21,17 +25,28 @@ class RandomAI:
 
         return playerscore, enemyscore
 
-    def turn(self, gamestate):
+    def availableMoves(self, gamestate):
+        available = []
 
-        x = random.randint(0, self.boardsize - 1)
-        y = random.randint(0, self.boardsize - 1)
+        for x in range(len(gamestate)):
+            for y in range(len(gamestate[x])):
+                if gamestate[x][y] == '-':
+                    available.append([x, y])
 
-        if gamestate[x][y] == "-":
-            me, enemy = self.score(gamestate)
-            if me + 12 < enemy:
-                print("forfeit")
-                return "forfeit"
+        return available
 
-            return [y, x]
-        else:
-            return self.turn(gamestate)
+    def place(self, gamestate, x, y):
+        gamestate[x][y] = self.player
+
+    def turn(self, gamestate, game):
+        available = self.availableMoves(gamestate)
+        random.shuffle(available)
+
+        for move in available:
+            newstate = Go.copyState(gamestate)
+            self.place(newstate, move[0], move[1])
+
+            if game.testgoodmove(newstate):
+                return [move[1], move[0]]
+
+        return 'forfeit'
