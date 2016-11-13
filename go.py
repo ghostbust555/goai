@@ -200,6 +200,7 @@ class Go:
                 if showOutput:
                     print('invalid move - that returns to board to a previous state')
 
+
                 self.turn(playerTurn,showOutput)
             else:
                 self.gsc = self.gsf
