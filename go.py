@@ -190,7 +190,7 @@ class Go:
 
             ## The new piece is added to its group,
             ## or a new group is created for it.
-            self.addpoint(turnResult[1], turnResult[0], self.xoro)
+            self.addpoint(turnResult[0], turnResult[1], self.xoro)
             self.groupPiecesAndCapture(self.gsf)
 
             ## Checks to see if the move, given all the
