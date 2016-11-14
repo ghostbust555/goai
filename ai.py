@@ -94,7 +94,7 @@ class AI:
 
             if game.testgoodmove(newstate):
                 print(move)
-                return [move[0][1], move[0][0]]
+                return [move[0][0], move[0][1]]
 
         return 'forfeit'
 
@@ -124,7 +124,7 @@ class AI:
 
                 if game.testgoodmove(newstate):
                     print(move)
-                    return [move[0][1], move[0][0]]
+                    return [move[0][0], move[0][1]]
 
             return 'forfeit'
 

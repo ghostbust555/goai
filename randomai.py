@@ -47,6 +47,6 @@ class RandomAI:
             self.place(newstate, move[0], move[1])
 
             if game.testgoodmove(newstate):
-                return [move[1], move[0]]
+                return [move[0], move[1]]
 
         return 'forfeit'
