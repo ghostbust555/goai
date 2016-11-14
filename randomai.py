@@ -1,8 +1,7 @@
 import copy
 import random
 
-from go import Go
-
+import go
 
 class RandomAI:
     boardsize = 9
@@ -43,7 +42,7 @@ class RandomAI:
         random.shuffle(available)
 
         for move in available:
-            newstate = Go.copyState(gamestate)
+            newstate = go.Go.copyState(gamestate)
             self.place(newstate, move[0], move[1])
 
             if game.testgoodmove(newstate):

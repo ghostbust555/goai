@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from go import Go
+import go
 
 import re
 from random import shuffle
@@ -10,7 +10,7 @@ np.random.seed(1337)  # for reproducibility
 
 from keras.datasets import mnist
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten
+from keras.layers import Dense, Dropout, Activation, Flatten, advanced_activations
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.utils import np_utils
 from keras import backend as K
@@ -26,7 +26,7 @@ class TestNeuralTrainer:
 
     batch_size = 128
     nb_output = boardSize*boardSize
-    nb_epoch = 12
+    nb_epoch = 120
     rows, cols = boardSize, boardSize
     # number of convolutional filters to use
     nb_filters = 16
@@ -34,6 +34,9 @@ class TestNeuralTrainer:
     pool_size = (3, 3)
     # convolution kernel size
     kernel_size = (3, 3)
+
+    totalInputs = []
+    totalOutputs = []
 
     model = None
 
@@ -57,11 +60,8 @@ class TestNeuralTrainer:
         self.trainOnGames(savedGames)
 
     index = 0
-    wInputStates = []
-    wOutputStates = []
-
-    bInputStates = []
-    bOutputStates = []
+    inputStates = []
+    outputStates = []
 
     def place(self, gamestate, x, y):
         gamestate[x][y] = self.player
@@ -72,34 +72,48 @@ class TestNeuralTrainer:
 
         return x, y
 
-    def aiStep(self, savedGame,state):
+    def getIntRep(self, val, xoro):
+        if val == '-':
+            return 0
+        elif val == xoro:
+            return 1
+        else:
+            return -1
+
+    def convertBoardStateToTensor(self, state, xoro):
+        return [[self.getIntRep(y, xoro) for y in x] for x in state]
+
+    def aiStep(self, savedGame, state):
+        if self.index >= len(savedGame.moves):
+            return "forfeit"
+
         move = savedGame.moves[self.index]
-        empty = np.zeros(self.boardSize, self.boardSize)
-        if move[1] == "":
-            self.index+=1
-            if move[0] == "B":
-                self.bOutputStates.append(empty)
-            else:
-                self.wOutputStates.append(empty)
+        empty = np.zeros((self.boardSize, self.boardSize))
+
+        black = move[0] == "B"
+        moveVal = move[1]
+
+        cbs = self.convertBoardStateToTensor(state, 'x' if black else 'o')
+        self.inputStates.append([cbs])
+
+        self.index += 1
+
+        if moveVal == "":
+            self.outputStates.append([empty])
             return "pass"
 
-        self.index+=1
-
-        x, y = self.alphaToXY(move[1])
+        x, y = self.alphaToXY(moveVal)
         empty[x][y] = 1
-        if move[0] == "B":
-            self.bOutputStates.append(empty)
-        else:
-            self.wOutputStates.append(empty)
+        self.outputStates.append([empty])
 
         return x, y
 
     def getGameAsBoardStates(self, savedGame):
-        go = Go()
+        game = go.Go()
 
         self.index = 0
 
-        go.begin(lambda state: self.aiStep(savedGame, state),
+        game.begin(lambda state: self.aiStep(savedGame, state),
                  lambda state: self.aiStep(savedGame, state))
 
     def makeModel(self):
@@ -110,16 +124,16 @@ class TestNeuralTrainer:
         self.model.add(Convolution2D(self.nb_filters, self.kernel_size[0], self.kernel_size[1],
                                 border_mode='valid',
                                 input_shape=input_shape))
-        self.model.add(Activation('relu'))
+        self.model.add(advanced_activations.SReLU())
         self.model.add(Convolution2D(self.nb_filters, self.kernel_size[0], self.kernel_size[1]))
-        self.model.add(Activation('relu'))
+        self.model.add(advanced_activations.SReLU())
         self.model.add(MaxPooling2D(pool_size=self.pool_size))
-        self.model.add(Dropout(0.25))
+        self.model.add(Dropout(0.1))
 
         self.model.add(Flatten())
-        self.model.add(Dense(128))
-        self.model.add(Activation('relu'))
-        self.model.add(Dropout(0.5))
+        self.model.add(Dense(256))
+        self.model.add(Activation('tanh'))
+        self.model.add(Dropout(0.1))
         self.model.add(Dense(self.nb_output))
         self.model.add(Activation('softmax'))
 
@@ -127,27 +141,34 @@ class TestNeuralTrainer:
                       optimizer='adadelta',
                       metrics=['accuracy'])
 
-    def getModelDataFormat(self, savedGames):
-        (X_train, y_train), (X_test, y_test) = savedGames
+    def getModelDataFormat(self, inputStates, outputStates):
+        take = int(len(inputStates)*.8)
 
-        X_train = X_train.reshape(X_train.shape[0], 1, self.rows, self.cols)
-        X_test = X_test.reshape(X_test.shape[0], 1, self.rows, self.cols)
+        x_train = inputStates[:take].astype('float32')
+        x_test = inputStates[take:].astype('float32')
+        y_train = (outputStates[:take]).reshape(take, self.boardSize*self.boardSize)
+        y_test = (outputStates[take:]).reshape(len(outputStates) - take, self.boardSize*self.boardSize)
 
+        print('X_train shape:', x_train.shape)
+        print(x_train.shape[0], 'train samples')
+        print(x_test.shape[0], 'test samples')
 
-        X_train = X_train.astype('float32')
-        X_test = X_test.astype('float32')
-        X_train /= 255
-        X_test /= 255
-        print('X_train shape:', X_train.shape)
-        print(X_train.shape[0], 'train samples')
-        print(X_test.shape[0], 'test samples')
-
-        # convert class vectors to binary class matrices
-        Y_train = np_utils.to_categorical(y_train, self.nb_output)
-        Y_test = np_utils.to_categorical(y_test, self.nb_output)
+        return x_train, x_test, y_train, y_test
 
     def trainOnGames(self, savedGames):
-        self.getModelDataFormat(savedGames)
+        for savedGame in savedGames[:10000]:
+            self.getGameAsBoardStates(savedGame)
+
+        x_train, x_test, y_train, y_test = self.getModelDataFormat(np.array(self.inputStates), np.array(self.outputStates))
+
+        self.model.fit(x_train, y_train, batch_size=self.batch_size, nb_epoch=self.nb_epoch, verbose=1, validation_data=(x_test, y_test))
+        score = self.model.evaluate(x_test, y_test, verbose=0)
+        print('Test score:', score[0])
+        print('Test accuracy:', score[1])
+
+        self.model.save_weights("savedNetwork")
+
+        pass
 
     def processGame(self, gameString:str):
         winner = ""

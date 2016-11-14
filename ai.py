@@ -7,7 +7,7 @@ from random import shuffle
 import sys
 
 import randomai
-from go import Go
+import go
 
 CURSOR_UP_ONE = '\x1b[1A'
 ERASE_LINE = '\x1b[2K'
@@ -63,10 +63,10 @@ class AI:
             ai1 = randomai.RandomAI('x', boardsize)
             ai2 = randomai.RandomAI('o', boardsize)
 
-            newstate = Go.copyState(gamestate)
+            newstate = go.Go.copyState(gamestate)
             AI.place(player, newstate, currentMove[0], currentMove[1])
 
-            game = Go()
+            game = go.Go()
             res = game.begin(lambda state: ai1.turn(state, game), lambda state: ai2.turn(state, game), newstate, otherPlayer, False, boardsize)
 
             if res == player:
