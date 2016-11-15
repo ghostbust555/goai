@@ -1,5 +1,8 @@
 from __future__ import print_function
 
+import theano
+from keras.engine import Merge
+
 import go
 
 import re
@@ -29,11 +32,13 @@ class TestNeuralTrainer:
     nb_epoch = 120
     rows, cols = boardSize, boardSize
     # number of convolutional filters to use
-    nb_filters = 16
+    nb_1_filters = 32
+    nb_2_filters = 16
     # size of pooling area for max pooling
     pool_size = (3, 3)
     # convolution kernel size
-    kernel_size = (3, 3)
+    kernel_1_size = (5, 5)
+    kernel_2_size = (3, 3)
 
     totalInputs = []
     totalOutputs = []
@@ -62,9 +67,6 @@ class TestNeuralTrainer:
     index = 0
     inputStates = []
     outputStates = []
-
-    def place(self, gamestate, x, y):
-        gamestate[x][y] = self.player
 
     def alphaToXY(self, alpha):
         x = ord(alpha[0]) - 97
@@ -121,18 +123,41 @@ class TestNeuralTrainer:
 
         input_shape = (1, self.rows, self.cols)
 
-        self.model.add(Convolution2D(self.nb_filters, self.kernel_size[0], self.kernel_size[1],
-                                border_mode='valid',
+        branch_one = Sequential()
+        branch_one.add(Convolution2D(32, 1, 1,
+                                      border_mode='same',
+                                      input_shape=input_shape))
+
+        branch_two = Sequential()
+        branch_one.add(Convolution2D(32, 1, 1,
+                                     border_mode='same',
+                                     input_shape=input_shape))
+        branch_two.add(Convolution2D(32, 3, 3,
+                                border_mode='same',
                                 input_shape=input_shape))
+
+        branch_three = Sequential()
+        branch_one.add(Convolution2D(32, 1, 1,
+                                 border_mode='same',
+                                 input_shape=input_shape))
+        branch_three.add(Convolution2D(32, 5, 5,
+                                border_mode='same',
+                                input_shape=input_shape))
+
+        merged = Merge([branch_one, branch_two, branch_three], mode='concat', concat_axis=1)
+
+        self.model.add(merged)
         self.model.add(advanced_activations.SReLU())
-        self.model.add(Convolution2D(self.nb_filters, self.kernel_size[0], self.kernel_size[1]))
+        self.model.add(Convolution2D(self.nb_2_filters, self.kernel_2_size[0], self.kernel_2_size[1]))
         self.model.add(advanced_activations.SReLU())
         self.model.add(MaxPooling2D(pool_size=self.pool_size))
         self.model.add(Dropout(0.1))
 
         self.model.add(Flatten())
+        self.model.add(Dense(512))
+        self.model.add(advanced_activations.ELU())
         self.model.add(Dense(256))
-        self.model.add(Activation('tanh'))
+        self.model.add(advanced_activations.ELU())
         self.model.add(Dropout(0.1))
         self.model.add(Dense(self.nb_output))
         self.model.add(Activation('softmax'))
@@ -161,7 +186,7 @@ class TestNeuralTrainer:
 
         x_train, x_test, y_train, y_test = self.getModelDataFormat(np.array(self.inputStates), np.array(self.outputStates))
 
-        self.model.fit(x_train, y_train, batch_size=self.batch_size, nb_epoch=self.nb_epoch, verbose=1, validation_data=(x_test, y_test))
+        self.model.fit([x_train, x_train, x_train], y_train, batch_size=self.batch_size, nb_epoch=self.nb_epoch, verbose=1, validation_data=([x_test,x_test,x_test], y_test))
         score = self.model.evaluate(x_test, y_test, verbose=0)
         print('Test score:', score[0])
         print('Test accuracy:', score[1])
@@ -197,6 +222,8 @@ class TestNeuralTrainer:
 
         return sg
 
+theano.config.blas.ldflags = "-Lc:/openblas -lopenblas"
+print('blas.ldflags=', theano.config.blas.ldflags)
 tnt = TestNeuralTrainer()
 tnt.makeModel()
 tnt.loadFile()
