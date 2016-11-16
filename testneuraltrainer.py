@@ -1,7 +1,10 @@
 from __future__ import print_function
 
 import theano
+from keras.engine import Input
 from keras.engine import Merge
+from keras.engine import Model
+from keras.engine import merge
 
 import go
 
@@ -118,8 +121,21 @@ class TestNeuralTrainer:
         game.begin(lambda state: self.aiStep(savedGame, state),
                  lambda state: self.aiStep(savedGame, state))
 
-    def inceptionLayer(self):
-        input_shape = (1, self.rows, self.cols)
+    def inceptionFunctional(self, input):
+        input_img = input
+
+        t1 = Convolution2D(64, 1, 1, border_mode='same', activation='relu')(input_img)
+        tower_1 = Convolution2D(64, 3, 3, border_mode='same', activation='relu')(t1)
+
+        t2 = Convolution2D(64, 1, 1, border_mode='same', activation='relu')(input_img)
+        tower_2 = Convolution2D(64, 5, 5, border_mode='same', activation='relu')(t2)
+
+        t3 = MaxPooling2D((3, 3), strides=(1, 1), border_mode='same')(input_img)
+        tower_3 = Convolution2D(64, 1, 1, border_mode='same', activation='relu')(t3)
+
+        return merge([tower_1, tower_2, tower_3], mode='concat', concat_axis=1)
+
+    def inceptionLayer(self, input_shape):
 
         branch_one = Sequential()
         branch_one.add(Convolution2D(8, 1, 1,
@@ -148,16 +164,29 @@ class TestNeuralTrainer:
         merged = Merge([branch_one, branch_two, branch_three], mode='concat', concat_axis=1)
         return merged
 
+    def makeModelFunctional(self, input):
+        x1 = self.inceptionFunctional(input)
+
+        # x2 = Convolution2D(self.nb_2_filters, self.kernel_2_size[0], self.kernel_2_size[1], activation='relu')(x1)
+        # x3 = MaxPooling2D(pool_size=self.pool_size)(x2)
+        # x4 = Dropout(.1)(x3)
+        # x5 = Flatten()(x4)
+        # x6 = Dense(512, activation='relu')(x5)
+        # x7 = Dense(self.nb_output, activation='softmax')(x6)
+
+        self.model = Model(input=input, output=x1)
+        self.model.compile(loss='categorical_crossentropy',
+                           optimizer='adadelta',
+                           metrics=['accuracy'])
+
     def makeModel(self):
         self.model = Sequential()
 
         input_shape = (1, self.rows, self.cols)
 
-        merged1 = self.inceptionLayer()
-        merged2 = self.inceptionLayer()
+        merged1 = self.inceptionLayer(input_shape)
 
         self.model.add(merged1)
-        self.model.add(advanced_activations.SReLU())
         self.model.add(Convolution2D(self.nb_2_filters, self.kernel_2_size[0], self.kernel_2_size[1]))
         self.model.add(advanced_activations.SReLU())
         self.model.add(MaxPooling2D(pool_size=self.pool_size))
@@ -196,7 +225,12 @@ class TestNeuralTrainer:
 
         x_train, x_test, y_train, y_test = self.getModelDataFormat(np.array(self.inputStates), np.array(self.outputStates))
 
-        self.model.fit([x_train, x_train, x_train], y_train, batch_size=self.batch_size, nb_epoch=self.nb_epoch, verbose=1, validation_data=([x_test,x_test,x_test], y_test))
+        input_shape = (1, self.rows, self.cols)
+        input = Input(shape=input_shape)
+
+        self.makeModelFunctional(input)
+
+        self.model.fit(x_train, y_train, batch_size=self.batch_size, nb_epoch=self.nb_epoch, verbose=1, validation_data=(x_test, y_test))
         score = self.model.evaluate(x_test, y_test, verbose=0)
         print('Test score:', score[0])
         print('Test accuracy:', score[1])
@@ -232,8 +266,8 @@ class TestNeuralTrainer:
 
         return sg
 
-theano.config.blas.ldflags = "-LC:/Users/ghost/Anaconda3/pkgs/mkl-11.3.3-1/Library/bin -lmkl_core -lmkl_intel_thread -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_rt"
+theano.config.blas.ldflags = "-LC:/Users/kyle.flanigan/PycharmProjects/foriertest/mkl -lmkl_core -lmkl_intel_thread -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_rt"
 print('blas.ldflags=', theano.config.blas.ldflags)
 tnt = TestNeuralTrainer()
-tnt.makeModel()
+#tnt.makeModelFunctional()
 tnt.loadFile()
