@@ -118,13 +118,11 @@ class TestNeuralTrainer:
         game.begin(lambda state: self.aiStep(savedGame, state),
                  lambda state: self.aiStep(savedGame, state))
 
-    def makeModel(self):
-        self.model = Sequential()
-
+    def inceptionLayer(self):
         input_shape = (1, self.rows, self.cols)
 
         branch_one = Sequential()
-        branch_one.add(Convolution2D(32, 1, 1,
+        branch_one.add(Convolution2D(8, 1, 1,
                                       border_mode='same',
                                       input_shape=input_shape))
 
@@ -140,13 +138,25 @@ class TestNeuralTrainer:
         branch_one.add(Convolution2D(32, 1, 1,
                                  border_mode='same',
                                  input_shape=input_shape))
-        branch_three.add(Convolution2D(32, 5, 5,
+        branch_three.add(Convolution2D(32, 3, 3,
+                                border_mode='same',
+                                input_shape=input_shape))
+        branch_three.add(Convolution2D(32, 3, 3,
                                 border_mode='same',
                                 input_shape=input_shape))
 
         merged = Merge([branch_one, branch_two, branch_three], mode='concat', concat_axis=1)
+        return merged
 
-        self.model.add(merged)
+    def makeModel(self):
+        self.model = Sequential()
+
+        input_shape = (1, self.rows, self.cols)
+
+        merged1 = self.inceptionLayer()
+        merged2 = self.inceptionLayer()
+
+        self.model.add(merged1)
         self.model.add(advanced_activations.SReLU())
         self.model.add(Convolution2D(self.nb_2_filters, self.kernel_2_size[0], self.kernel_2_size[1]))
         self.model.add(advanced_activations.SReLU())
