@@ -222,7 +222,7 @@ class TestNeuralTrainer:
 
         return sg
 
-theano.config.blas.ldflags = "-Lc:/openblas -lopenblas"
+theano.config.blas.ldflags = "-LC:/Users/ghost/Anaconda3/pkgs/mkl-11.3.3-1/Library/bin -lmkl_core -lmkl_intel_thread -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_rt"
 print('blas.ldflags=', theano.config.blas.ldflags)
 tnt = TestNeuralTrainer()
 tnt.makeModel()
