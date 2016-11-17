@@ -167,12 +167,12 @@ class TestNeuralTrainer:
     def makeModelFunctional(self, input):
         x1 = self.inceptionFunctional(input)
 
-        # x2 = Convolution2D(self.nb_2_filters, self.kernel_2_size[0], self.kernel_2_size[1], activation='relu')(x1)
-        # x3 = MaxPooling2D(pool_size=self.pool_size)(x2)
-        # x4 = Dropout(.1)(x3)
-        # x5 = Flatten()(x4)
-        # x6 = Dense(512, activation='relu')(x5)
-        # x7 = Dense(self.nb_output, activation='softmax')(x6)
+        x2 = Convolution2D(self.nb_2_filters, self.kernel_2_size[0], self.kernel_2_size[1], activation='relu')(x1)
+        x3 = MaxPooling2D(pool_size=self.pool_size)(x2)
+        x4 = Dropout(.1)(x3)
+        x5 = Flatten()(x4)
+        x6 = Dense(512, activation='relu')(x5)
+        x7 = Dense(self.nb_output, activation='softmax')(x6)
 
         self.model = Model(input=input, output=x1)
         self.model.compile(loss='categorical_crossentropy',
