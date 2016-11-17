@@ -1,10 +1,13 @@
 from __future__ import print_function
 
+import os
+
 import theano
 from keras.engine import Input
 from keras.engine import Merge
 from keras.engine import Model
 from keras.engine import merge
+from keras import backend as kerasBackend
 
 import go
 
@@ -32,7 +35,7 @@ class TestNeuralTrainer:
 
     batch_size = 128
     nb_output = boardSize*boardSize
-    nb_epoch = 100
+    nb_epoch = 5
     rows, cols = boardSize, boardSize
     # number of convolutional filters to use
     nb_1_filters = 32
@@ -167,11 +170,11 @@ class TestNeuralTrainer:
 
     def makeModelFunctional(self, input):
         x = self.inceptionFunctional(input)
-        x = advanced_activations.ELU()(x)
+        x = advanced_activations.SReLU()(x)
         x = self.inceptionFunctional(x)
-        x = advanced_activations.ELU()(x)
+        x = advanced_activations.SReLU()(x)
         x = self.inceptionFunctional(x)
-        x = advanced_activations.ELU()(x)
+        x = advanced_activations.SReLU()(x)
         x = MaxPooling2D(pool_size=self.pool_size)(x)
         x = Flatten()(x)
         x = Dense(512, activation='relu')(x)
@@ -231,16 +234,20 @@ class TestNeuralTrainer:
         x_train, x_test, y_train, y_test = self.getModelDataFormat(np.array(self.inputStates), np.array(self.outputStates))
 
         input_shape = (1, self.rows, self.cols)
-        input = Input(shape=input_shape)
+        inputLayer = Input(shape=input_shape)
 
-        self.makeModelFunctional(input)
+        self.makeModelFunctional(inputLayer)
 
         self.model.fit(x_train, y_train, batch_size=self.batch_size, nb_epoch=self.nb_epoch, verbose=1, validation_data=(x_test, y_test))
         score = self.model.evaluate(x_test, y_test, verbose=0)
         print('Test score:', score[0])
         print('Test accuracy:', score[1])
 
-        self.model.save_weights("savedNetwork")
+        model_json = self.model.to_json()
+        with open("savedNetwork.json", "w") as json_file:
+            json_file.write(model_json)
+        # serialize weights to HDF5
+        self.model.save_weights("savedNetwork.h5")
 
         pass
 
@@ -271,7 +278,9 @@ class TestNeuralTrainer:
 
         return sg
 
-theano.config.blas.ldflags = "-LC:/Users/ghost/PycharmProjects/goai/mkl -lmkl_core -lmkl_intel_thread -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_rt"
+dir_path = os.path.dirname(os.path.realpath(__file__))
+theano.config.blas.ldflags = "-L"+dir_path+"/mkl -lmkl_core -lmkl_intel_thread -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_rt"
+kerasBackend.set_image_dim_ordering("th")
 print('blas.ldflags=', theano.config.blas.ldflags)
 tnt = TestNeuralTrainer()
 #tnt.makeModelFunctional()

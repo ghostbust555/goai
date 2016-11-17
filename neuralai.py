@@ -4,6 +4,8 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait, as
 from queue import Queue
 from random import shuffle
 
+import keras
+
 import sys
 
 import go
@@ -23,11 +25,14 @@ class AI:
     player = ''
     otherPlayer = ''
     boardsize = 9
+    model = None
 
     def __init__(self, player, boardsize):
         self.player = player
         self.otherPlayer = 'o' if player == 'x' else 'x'
         self.boardsize = boardsize
+        model = keras.models.model_from_json("savedNetwork.json")
+        model.load_weights("savedNework.h5")
 
     def score(self, gamestate):
         playerscore = 0
