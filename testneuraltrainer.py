@@ -32,7 +32,7 @@ class TestNeuralTrainer:
 
     batch_size = 128
     nb_output = boardSize*boardSize
-    nb_epoch = 120
+    nb_epoch = 100
     rows, cols = boardSize, boardSize
     # number of convolutional filters to use
     nb_1_filters = 32
@@ -122,18 +122,19 @@ class TestNeuralTrainer:
                  lambda state: self.aiStep(savedGame, state))
 
     def inceptionFunctional(self, input):
-        input_img = input
+        t1 = Convolution2D(32, 1, 1, border_mode='same')(input)
+        tower_1 = Convolution2D(32, 3, 3, border_mode='same')(t1)
 
-        t1 = Convolution2D(64, 1, 1, border_mode='same', activation='relu')(input_img)
-        tower_1 = Convolution2D(64, 3, 3, border_mode='same', activation='relu')(t1)
+        t2 = Convolution2D(32, 1, 1, border_mode='same')(input)
+        t2 = Convolution2D(32, 3, 3, border_mode='same')(t2)
+        tower_2 = Convolution2D(32, 3, 3, border_mode='same')(t2)
 
-        t2 = Convolution2D(64, 1, 1, border_mode='same', activation='relu')(input_img)
-        tower_2 = Convolution2D(64, 5, 5, border_mode='same', activation='relu')(t2)
+        t3 = MaxPooling2D((3, 3), strides=(1, 1), border_mode='same')(input)
+        tower_3 = Convolution2D(32, 1, 1, border_mode='same')(t3)
 
-        t3 = MaxPooling2D((3, 3), strides=(1, 1), border_mode='same')(input_img)
-        tower_3 = Convolution2D(64, 1, 1, border_mode='same', activation='relu')(t3)
+        tower_4 = Convolution2D(16, 1, 1, border_mode='same')(input)
 
-        return merge([tower_1, tower_2, tower_3], mode='concat', concat_axis=1)
+        return merge([tower_1, tower_2, tower_3, tower_4, input], mode='concat', concat_axis=1)
 
     def inceptionLayer(self, input_shape):
 
@@ -165,16 +166,20 @@ class TestNeuralTrainer:
         return merged
 
     def makeModelFunctional(self, input):
-        x1 = self.inceptionFunctional(input)
+        x = self.inceptionFunctional(input)
+        x = advanced_activations.ELU()(x)
+        x = self.inceptionFunctional(x)
+        x = advanced_activations.ELU()(x)
+        x = self.inceptionFunctional(x)
+        x = advanced_activations.ELU()(x)
+        x = MaxPooling2D(pool_size=self.pool_size)(x)
+        x = Flatten()(x)
+        x = Dense(512, activation='relu')(x)
+        x = Dense(256, activation='relu')(x)
+        x = Dropout(.2)(x)
+        x = Dense(self.nb_output, activation='softmax')(x)
 
-        x2 = Convolution2D(self.nb_2_filters, self.kernel_2_size[0], self.kernel_2_size[1], activation='relu')(x1)
-        x3 = MaxPooling2D(pool_size=self.pool_size)(x2)
-        x4 = Dropout(.1)(x3)
-        x5 = Flatten()(x4)
-        x6 = Dense(512, activation='relu')(x5)
-        x7 = Dense(self.nb_output, activation='softmax')(x6)
-
-        self.model = Model(input=input, output=x1)
+        self.model = Model(input=input, output=x)
         self.model.compile(loss='categorical_crossentropy',
                            optimizer='adadelta',
                            metrics=['accuracy'])
@@ -220,7 +225,7 @@ class TestNeuralTrainer:
         return x_train, x_test, y_train, y_test
 
     def trainOnGames(self, savedGames):
-        for savedGame in savedGames[:10000]:
+        for savedGame in savedGames:
             self.getGameAsBoardStates(savedGame)
 
         x_train, x_test, y_train, y_test = self.getModelDataFormat(np.array(self.inputStates), np.array(self.outputStates))
@@ -266,7 +271,7 @@ class TestNeuralTrainer:
 
         return sg
 
-theano.config.blas.ldflags = "-LC:/Users/kyle.flanigan/PycharmProjects/foriertest/mkl -lmkl_core -lmkl_intel_thread -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_rt"
+theano.config.blas.ldflags = "-LC:/Users/ghost/PycharmProjects/goai/mkl -lmkl_core -lmkl_intel_thread -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_rt"
 print('blas.ldflags=', theano.config.blas.ldflags)
 tnt = TestNeuralTrainer()
 #tnt.makeModelFunctional()
