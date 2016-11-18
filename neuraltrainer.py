@@ -9,6 +9,7 @@ from keras.engine import Model
 from keras.engine import merge
 from keras import backend as kerasBackend
 
+import aiutils
 import go
 
 import re
@@ -30,7 +31,7 @@ class SavedGame:
     size = 0
     moves = []
 
-class TestNeuralTrainer:
+class NeuralTrainer:
     boardSize = 9
 
     batch_size = 128
@@ -74,23 +75,6 @@ class TestNeuralTrainer:
     inputStates = []
     outputStates = []
 
-    def alphaToXY(self, alpha):
-        x = ord(alpha[0]) - 97
-        y = ord(alpha[1]) - 97
-
-        return x, y
-
-    def getIntRep(self, val, xoro):
-        if val == '-':
-            return 0
-        elif val == xoro:
-            return 1
-        else:
-            return -1
-
-    def convertBoardStateToTensor(self, state, xoro):
-        return [[self.getIntRep(y, xoro) for y in x] for x in state]
-
     def aiStep(self, savedGame, state):
         if self.index >= len(savedGame.moves):
             return "forfeit"
@@ -101,7 +85,7 @@ class TestNeuralTrainer:
         black = move[0] == "B"
         moveVal = move[1]
 
-        cbs = self.convertBoardStateToTensor(state, 'x' if black else 'o')
+        cbs = aiutils.convertBoardStateToTensor(state, 'x' if black else 'o')
         self.inputStates.append([cbs])
 
         self.index += 1
@@ -110,7 +94,7 @@ class TestNeuralTrainer:
             self.outputStates.append([empty])
             return "pass"
 
-        x, y = self.alphaToXY(moveVal)
+        x, y = aiutils.alphaToXY(moveVal)
         empty[x][y] = 1
         self.outputStates.append([empty])
 
@@ -282,6 +266,6 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 theano.config.blas.ldflags = "-L"+dir_path+"/mkl -lmkl_core -lmkl_intel_thread -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_rt"
 kerasBackend.set_image_dim_ordering("th")
 print('blas.ldflags=', theano.config.blas.ldflags)
-tnt = TestNeuralTrainer()
+tnt = NeuralTrainer()
 #tnt.makeModelFunctional()
 tnt.loadFile()
