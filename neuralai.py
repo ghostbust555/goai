@@ -1,4 +1,5 @@
 import copy
+import json
 import random
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait, as_completed
 from queue import Queue
@@ -23,7 +24,7 @@ MAX_WORKERS = 7
 USE_MUTITHREAD = True
 
 
-class AI:
+class NeuralAI:
     player = ''
     otherPlayer = ''
     boardsize = 9
@@ -33,8 +34,12 @@ class AI:
         self.player = player
         self.otherPlayer = 'o' if player == 'x' else 'x'
         self.boardsize = boardsize
-        model = keras.models.model_from_json("savedNetwork.json")
-        model.load_weights("savedNework.h5")
+
+        data = ""
+        with open('savedNetwork.json') as jsonfile:
+            data = json.load(jsonfile)
+        self.model = keras.models.model_from_json(data)
+        self.model.load_weights("savedNework.h5")
 
     def score(self, gamestate):
         playerscore = 0
@@ -107,6 +112,10 @@ class AI:
         return 'forfeit'
 
     def turn(self, gamestate, game):
+        i = aiutils.convertBoardStateToTensor(gamestate, self.player)
+        res = self.model.predict(i)
+
+
         if USE_MUTITHREAD:
             futures = []
             available = self.availableMoves(gamestate)

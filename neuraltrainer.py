@@ -36,7 +36,7 @@ class NeuralTrainer:
 
     batch_size = 128
     nb_output = boardSize*boardSize
-    nb_epoch = 5
+    nb_epoch = 1
     rows, cols = boardSize, boardSize
     # number of convolutional filters to use
     nb_1_filters = 32
@@ -155,10 +155,9 @@ class NeuralTrainer:
     def makeModelFunctional(self, input):
         x = self.inceptionFunctional(input)
         x = advanced_activations.SReLU()(x)
-        x = self.inceptionFunctional(x)
-        x = advanced_activations.SReLU()(x)
-        x = self.inceptionFunctional(x)
-        x = advanced_activations.SReLU()(x)
+        # x = self.inceptionFunctional(x)
+        # x = advanced_activations.SReLU()(x)
+        x = Convolution2D(32, 3, 3, border_mode='valid')(x)
         x = MaxPooling2D(pool_size=self.pool_size)(x)
         x = Flatten()(x)
         x = Dense(512, activation='relu')(x)
@@ -264,7 +263,6 @@ class NeuralTrainer:
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 theano.config.blas.ldflags = "-L"+dir_path+"/mkl -lmkl_core -lmkl_intel_thread -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_rt"
-kerasBackend.set_image_dim_ordering("th")
 print('blas.ldflags=', theano.config.blas.ldflags)
 tnt = NeuralTrainer()
 #tnt.makeModelFunctional()
