@@ -1,3 +1,5 @@
+import numpy as np
+
 def alphaToXY(alpha):
     x = ord(alpha[0]) - 97
     y = ord(alpha[1]) - 97
@@ -14,3 +16,6 @@ def getIntRep(val, xoro):
 
 def convertBoardStateToTensor(state, xoro):
     return [[getIntRep(y, xoro) for y in x] for x in state]
+
+def tensorToMoves(state):
+    return np.array(state).argsort(axis=None)[::-1]
