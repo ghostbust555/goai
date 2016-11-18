@@ -3,6 +3,7 @@ from __future__ import print_function
 import os
 
 import theano
+from keras.callbacks import ModelCheckpoint
 from keras.engine import Input
 from keras.engine import Merge
 from keras.engine import Model
@@ -221,14 +222,16 @@ class NeuralTrainer:
 
         self.makeModelFunctional(inputLayer)
 
-        self.model.fit(x_train, y_train, batch_size=self.batch_size, nb_epoch=self.nb_epoch, verbose=1, validation_data=(x_test, y_test))
+        model_json = self.model.to_json()
+        with open("savedNetwork.json", "w") as json_file:
+            json_file.write(model_json)
+
+        checkpointer = ModelCheckpoint(filepath="savedNetwork.h5", verbose=1, save_best_only=True)
+        self.model.fit(x_train, y_train, batch_size=self.batch_size, nb_epoch=self.nb_epoch, verbose=1, validation_data=(x_test, y_test), callbacks=[checkpointer])
         score = self.model.evaluate(x_test, y_test, verbose=0)
         print('Test score:', score[0])
         print('Test accuracy:', score[1])
 
-        model_json = self.model.to_json()
-        with open("savedNetwork.json", "w") as json_file:
-            json_file.write(model_json)
         # serialize weights to HDF5
         self.model.save_weights("savedNetwork.h5")
 
