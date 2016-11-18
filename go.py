@@ -196,15 +196,19 @@ class Go:
             ## Checks to see if the move, given all the
             ## captures it causes, would return the board
             ## to a previous game state.
-            if not self.testgoodmove(self.gsf):
-                if showOutput:
-                    print('invalid move - that returns to board to a previous state')
 
+            self.gsc = self.gsf
+            self.gscache += self.readable(self.gsf)
 
-                self.turn(playerTurn,showOutput)
-            else:
-                self.gsc = self.gsf
-                self.gscache += self.readable(self.gsf)
+            # if not self.testgoodmove(self.gsf):
+            #     if showOutput:
+            #         print('invalid move - that returns to board to a previous state')
+            #
+            #
+            #     self.turn(playerTurn,showOutput)
+            # else:
+            #     self.gsc = self.gsf
+            #     self.gscache += self.readable(self.gsf)
 
         if (self.player1_pass == 1) & (self.player2_pass == 1):
             self.gameover = 1

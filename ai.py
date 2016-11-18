@@ -1,7 +1,9 @@
-import copy
-import random
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait, as_completed
 from queue import Queue
+
+import copy
+import random
+
 from random import shuffle
 
 import sys
@@ -15,7 +17,7 @@ ERASE_LINE = '\x1b[2K'
 TRIES_PER_STATE = 5
 MAX_WORKERS = 7
 
-USE_MUTITHREAD = True
+USE_MUTITHREAD = False
 
 
 class AI:
@@ -89,7 +91,7 @@ class AI:
         bestmoves = sorted(rank, key=lambda x: x[1], reverse=True)
 
         for move in bestmoves:
-            newstate = Go.copyState(gamestate)
+            newstate = go.Go.copyState(gamestate)
             self.place(self.player, newstate, move[0][0], move[0][1])
 
             if game.testgoodmove(newstate):
@@ -119,7 +121,7 @@ class AI:
             bestmoves = sorted(rank, key=lambda x: x[1], reverse=True)
 
             for move in bestmoves:
-                newstate = Go.copyState(gamestate)
+                newstate = go.Go.copyState(gamestate)
                 self.place(self.player, newstate, move[0][0], move[0][1])
 
                 if game.testgoodmove(newstate):
