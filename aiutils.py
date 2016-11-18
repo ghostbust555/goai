@@ -1,5 +1,8 @@
-import numpy as np
 import math
+
+import go
+import randomai
+
 
 def alphaToXY(alpha):
     x = ord(alpha[0]) - 97
@@ -27,3 +30,32 @@ def vectorToMoves(state):
         bestMoveLocations.append([math.floor(index / boardsize), math.floor(index % boardsize), state[0][index]])
 
     return bestMoveLocations
+
+def montecarlo(currentMove, boardsize, gamestate, player, otherPlayer, TRIES_PER_STATE):
+    score = 0
+    for i in range(TRIES_PER_STATE):
+        ai1 = randomai.RandomAI('x', boardsize)
+        ai2 = randomai.RandomAI('o', boardsize)
+
+        newstate = go.Go.copyState(gamestate)
+        if place(player, newstate, currentMove[0], currentMove[1]):
+
+            game = go.Go()
+            res = game.begin(lambda state: ai1.turn(state, game), lambda state: ai2.turn(state, game), newstate, otherPlayer, False, boardsize)
+
+            if res == player:
+                score += 1
+            elif res != 'tie':
+                score -= 1
+        else:
+            return [currentMove, -1000]
+
+    return [currentMove, score]
+
+
+def place(player, gamestate, x, y):
+    if gamestate[x][y] == '-':
+        gamestate[x][y] = player
+        return True
+    else:
+        return False

@@ -223,7 +223,7 @@ class Go:
             self.x_points = myscore
             self.o_points = enemyscore
 
-        if myscore + 10 < enemyscore:
+        if myscore + 15 < enemyscore:
             self.gameover = 1
 
     def begin(self, player1turn, player2turn, initialState=None, startingPlayer='x', showOutput = False, board_size=9):

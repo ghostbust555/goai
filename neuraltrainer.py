@@ -37,7 +37,7 @@ class NeuralTrainer:
 
     batch_size = 128
     nb_output = boardSize*boardSize
-    nb_epoch = 1
+    nb_epoch = 15
     rows, cols = boardSize, boardSize
     # number of convolutional filters to use
     nb_1_filters = 32
