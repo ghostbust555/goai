@@ -112,7 +112,7 @@ class Go:
                             captured = False
                             break
 
-                queue.extend(Go.getAdjacentDiagonal(x, y, self.boardsize))
+                #queue.extend(Go.getAdjacentDiagonal(x, y, self.boardsize))
 
         return visited, captured
 
