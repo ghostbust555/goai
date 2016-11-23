@@ -16,6 +16,8 @@ function initalize(){
 }
 
 function drawBoardState(){
+    $('.piece').remove()
+
     for (var i = 0; i < boardsize; i++){
         for (var j = 0; j < boardsize; j++){
             if(boardState[i][j] !== '-'){
@@ -23,6 +25,7 @@ function drawBoardState(){
                 x = i * 54 + 25
 
                 var piece = document.createElement("img");
+                piece.className = "piece"
                 piece.style.position = "absolute"
 
                 piece.src = boardState[i][j] == "x" ? "http://bsccongress.com/im3/glossy-black-circle-button-clip-art.png" : "http://cdn.shopify.com/s/files/1/0185/5092/products/symbols-0200_large.png?v=1369543715";
@@ -38,11 +41,13 @@ function drawBoardState(){
 
 function placeStone(x, y, xoro){
     boardState[x][y] = xoro
+
     $.get("/move", {"x": x, "y":y})
-       .done(function(string) {
-        $("#the-string").show();
-        $("#the-string input").val(string);
-      });
+        .done(function(state) {
+            boardState = JSON.parse(state)
+            drawBoardState()
+        });
+
     drawBoardState()
 }
 

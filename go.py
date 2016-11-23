@@ -13,6 +13,8 @@ class Go:
     o_points = []
     x_points = []
 
+    currentPlayer = 'x'
+
     def initalize(self):
         gs = []
         for i in range(0, self.boardsize):
@@ -167,6 +169,7 @@ class Go:
         return copy
 
     def turn(self, playerTurn, showOutput=False):
+        self.currentPlayer = self.xoro
         self.gsf = Go.copyState(self.gsc)
 
         if showOutput:
@@ -223,8 +226,8 @@ class Go:
             self.x_points = myscore
             self.o_points = enemyscore
 
-        if myscore + 15 < enemyscore:
-            self.gameover = 1
+        # if myscore + 15 < enemyscore:
+        #     self.gameover = 1
 
     def begin(self, player1turn, player2turn, initialState=None, startingPlayer='x', showOutput = False, board_size=9):
         self.boardsize = board_size
