@@ -1,30 +1,24 @@
 from __future__ import print_function
 
 import os
+import re
+from random import shuffle
 
+import numpy as np
 import theano
 from keras.callbacks import ModelCheckpoint
 from keras.engine import Input
 from keras.engine import Merge
 from keras.engine import Model
 from keras.engine import merge
-from keras import backend as kerasBackend
 
 import aiutils
 import go
-
-import re
-from random import shuffle
-
-import numpy as np
 np.random.seed(1337)  # for reproducibility
 
-from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten, advanced_activations
 from keras.layers import Convolution2D, MaxPooling2D
-from keras.utils import np_utils
-from keras import backend as K
 
 
 class SavedGame:
@@ -124,34 +118,6 @@ class NeuralTrainer:
 
         return merge([tower_1, tower_2, tower_3, tower_4, input], mode='concat', concat_axis=1)
 
-    def inceptionLayer(self, input_shape):
-
-        branch_one = Sequential()
-        branch_one.add(Convolution2D(8, 1, 1,
-                                      border_mode='same',
-                                      input_shape=input_shape))
-
-        branch_two = Sequential()
-        branch_one.add(Convolution2D(32, 1, 1,
-                                     border_mode='same',
-                                     input_shape=input_shape))
-        branch_two.add(Convolution2D(32, 3, 3,
-                                border_mode='same',
-                                input_shape=input_shape))
-
-        branch_three = Sequential()
-        branch_one.add(Convolution2D(32, 1, 1,
-                                 border_mode='same',
-                                 input_shape=input_shape))
-        branch_three.add(Convolution2D(32, 3, 3,
-                                border_mode='same',
-                                input_shape=input_shape))
-        branch_three.add(Convolution2D(32, 3, 3,
-                                border_mode='same',
-                                input_shape=input_shape))
-
-        merged = Merge([branch_one, branch_two, branch_three], mode='concat', concat_axis=1)
-        return merged
 
     def makeModelFunctional(self, input):
         x = self.inceptionFunctional(input)
@@ -170,32 +136,6 @@ class NeuralTrainer:
         self.model.compile(loss='categorical_crossentropy',
                            optimizer='adadelta',
                            metrics=['accuracy'])
-
-    def makeModel(self):
-        self.model = Sequential()
-
-        input_shape = (1, self.rows, self.cols)
-
-        merged1 = self.inceptionLayer(input_shape)
-
-        self.model.add(merged1)
-        self.model.add(Convolution2D(self.nb_2_filters, self.kernel_2_size[0], self.kernel_2_size[1]))
-        self.model.add(advanced_activations.SReLU())
-        self.model.add(MaxPooling2D(pool_size=self.pool_size))
-        self.model.add(Dropout(0.1))
-
-        self.model.add(Flatten())
-        self.model.add(Dense(512))
-        self.model.add(advanced_activations.ELU())
-        self.model.add(Dense(256))
-        self.model.add(advanced_activations.ELU())
-        self.model.add(Dropout(0.1))
-        self.model.add(Dense(self.nb_output))
-        self.model.add(Activation('softmax'))
-
-        self.model.compile(loss='categorical_crossentropy',
-                      optimizer='adadelta',
-                      metrics=['accuracy'])
 
     def getModelDataFormat(self, inputStates, outputStates):
         take = int(len(inputStates)*.8)
@@ -265,8 +205,9 @@ class NeuralTrainer:
         return sg
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-theano.config.blas.ldflags = "-L"+dir_path+"/mkl -lmkl_core -lmkl_intel_thread -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_rt"
-print('blas.ldflags=', theano.config.blas.ldflags)
+if os.name == "nt":
+    theano.config.blas.ldflags = "-L"+dir_path+"/mkl -lmkl_core -lmkl_intel_thread -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_rt"
+    print('blas.ldflags=', theano.config.blas.ldflags)
 tnt = NeuralTrainer()
-#tnt.makeModelFunctional()
+tnt.makeModelFunctional()
 tnt.loadFile()

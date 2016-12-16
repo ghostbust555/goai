@@ -13,6 +13,9 @@ class Go:
     o_points = []
     x_points = []
 
+    o_captures = []
+    x_captures = []
+
     currentPlayer = 'x'
 
     def initalize(self):

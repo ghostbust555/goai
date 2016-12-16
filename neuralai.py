@@ -50,8 +50,9 @@ class NeuralAI:
         self.model = keras.models.model_from_json(data)
         self.model.load_weights("savedNetwork.h5")
 
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        theano.config.blas.ldflags = "-L" + dir_path + "/mkl -lmkl_core -lmkl_intel_thread -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_rt"
+        if os.name == "nt":
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            theano.config.blas.ldflags = "-L" + dir_path + "/mkl -lmkl_core -lmkl_intel_thread -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_rt"
 
     def score(self, gamestate):
         playerscore = 0
