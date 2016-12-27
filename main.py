@@ -24,13 +24,13 @@ class Game:
     def ai1turn(self, state):
         startingState = copy.deepcopy(state)
         move = self.ai1.turn(state, self.game)
-        self.history.append({'player':self.ai1.player, 'state': startingState, 'move':move})
+        self.history.append({'player':self.ai1.player, 'previousState': startingState, 'nextState':state, 'move':move})
         return move
 
     def ai2turn(self, state):
         startingState = copy.deepcopy(state)
         move = self.ai2.turn(state, self.game)
-        self.history.append({'player': self.ai2.player, 'state': startingState, 'move': move})
+        self.history.append({'player': self.ai2.player, 'previousState': startingState, 'nextState':state, 'move': move})
         return move
 
     def begin(self):
@@ -38,25 +38,31 @@ class Game:
 
     @cherrypy.expose
     def back(self):
-        last = self.history.pop()
-        self.removedHistory.append(last)
+        if len(self.history) > 0:
+            last = self.history.pop()
+            self.removedHistory.append(last)
 
-        lastState = last['state']
-        self.game.gsc = lastState
-        self.game.gsf = lastState
+            lastState = copy.deepcopy(last['previousState'])
+            self.game.gsc = lastState
+            self.game.gsf = lastState
 
-        return json.dumps(lastState)
+            return json.dumps(lastState)
+        else:
+            return None
 
     @cherrypy.expose
     def next(self):
-        last = self.removedHistory.pop()
-        self.history.append(last)
+        if len(self.removedHistory) > 0:
+            last = self.removedHistory.pop()
+            self.history.append(last)
 
-        lastState = last['state']
-        self.game.gsc = lastState
-        self.game.gsf = lastState
+            lastState = copy.deepcopy(last['nextState'])
+            self.game.gsc = lastState
+            self.game.gsf = lastState
 
-        return json.dumps(lastState)
+            return json.dumps(lastState)
+        else:
+            return None
 
     @cherrypy.expose
     def move(self, x, y):
