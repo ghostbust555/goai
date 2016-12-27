@@ -1,3 +1,4 @@
+import copy
 from threading import Thread
 
 import time
@@ -17,8 +18,45 @@ class Game:
     ai1 = None
     ai2 = None
 
+    history = []
+    removedHistory = []
+
+    def ai1turn(self, state):
+        startingState = copy.deepcopy(state)
+        move = self.ai1.turn(state, self.game)
+        self.history.append({'player':self.ai1.player, 'state': startingState, 'move':move})
+        return move
+
+    def ai2turn(self, state):
+        startingState = copy.deepcopy(state)
+        move = self.ai2.turn(state, self.game)
+        self.history.append({'player': self.ai2.player, 'state': startingState, 'move': move})
+        return move
+
     def begin(self):
-        self.game.begin(lambda state: self.ai1.turn(state, self.game), lambda state: self.ai2.turn(state, self.game), None, 'x', True, boardsize)
+        self.game.begin(self.ai1turn, self.ai2turn, None, 'x', True, boardsize)
+
+    @cherrypy.expose
+    def back(self):
+        last = self.history.pop()
+        self.removedHistory.append(last)
+
+        lastState = last['state']
+        self.game.gsc = lastState
+        self.game.gsf = lastState
+
+        return json.dumps(lastState)
+
+    @cherrypy.expose
+    def next(self):
+        last = self.removedHistory.pop()
+        self.history.append(last)
+
+        lastState = last['state']
+        self.game.gsc = lastState
+        self.game.gsf = lastState
+
+        return json.dumps(lastState)
 
     @cherrypy.expose
     def move(self, x, y):
@@ -40,15 +78,19 @@ class Game:
         return """<html>
           <head>
             <script src="http://code.jquery.com/jquery-latest.min.js" type="text/javascript"></script>
-            <link href="/static/css/style.css" rel="stylesheet">
           </head>
-          <body>
+          <body style="width:500px">
             <div id="main">
                 <img id="board" src="http://go.alamino.net/aprendajogargo/images/Blank_Go_board_9x9.png" width="500" height="500"/>
 
-                <script type="text/javascript">{0}</script>
+
+            </div>
+            <div id="controls" style="display:flex">
+                <button id="back" style="width:100%">Back</button>
+                <button id="next" style="width:100%">Next</button>
             </div>
           </body>
+          <footer><script type="text/javascript">{0}</script></footer>
         </html>
         """.format(js)
 

@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/foriertest.iml" filepath="$PROJECT_DIR$/.idea/foriertest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../lethetic_audio/.idea/lethetic_audio.iml" filepath="$PROJECT_DIR$/../lethetic_audio/.idea/lethetic_audio.iml" />
     </modules>
   </component>
 </project>
