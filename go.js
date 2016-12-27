@@ -1,13 +1,17 @@
 var board = document.getElementById('board');
 var back = document.getElementById('back');
 var next = document.getElementById('next');
+
+var x_score_element = document.getElementById('x_score');
+var o_score_element = document.getElementById('o_score');
+
 var pieceSize = 30;
 var boardsize = 9;
 
-var boardState = initalize();
+var boardState = initialize();
 var waiting = false;
 
-function initalize(){
+function initialize(){
     var gs = [];
     for (var i =0; i < boardsize; i++){
         gs.push([]);
@@ -46,17 +50,21 @@ function placeStone(x, y, xoro){
     if(!waiting && boardState[x][y] == "-") {
         boardState[x][y] = xoro;
 
-        $.get("/move", {"x": x, "y": y})
-            .done(function (state) {
-                waiting = false;
-                boardState = JSON.parse(state);
-                drawBoardState()
-            });
+        $.get("/move", {"x": x, "y": y}).done(updateBoard);
 
         waiting = true;
 
         drawBoardState()
     }
+}
+
+function updateBoard(jsonResult){
+    waiting = false;
+    res = JSON.parse(jsonResult);
+    boardState = res.state;
+    x_score_element.innerText = res.x_captures;
+    o_score_element.innerText = res.o_captures;
+    drawBoardState();
 }
 
 board.onclick = function (evt) {
@@ -71,20 +79,10 @@ board.onclick = function (evt) {
 
 back.onclick = function (evt) {
     waiting = true;
-    $.get("/back")
-        .done(function (state) {
-            waiting = false;
-            boardState = JSON.parse(state);
-            drawBoardState()
-        });
+    $.get("/back").done(updateBoard);
 };
 
 next.onclick = function (evt) {
     waiting = true;
-    $.get("/next")
-        .done(function (state) {
-            waiting = false;
-            boardState = JSON.parse(state);
-            drawBoardState()
-        });
+    $.get("/next").done(updateBoard);
 };

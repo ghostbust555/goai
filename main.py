@@ -24,13 +24,13 @@ class Game:
     def ai1turn(self, state):
         startingState = copy.deepcopy(state)
         move = self.ai1.turn(state, self.game)
-        self.history.append({'player':self.ai1.player, 'previousState': startingState, 'nextState':state, 'move':move})
+        self.history.append({'player':self.ai1.player, 'previousState': startingState, 'nextState':state, 'move':move, 'x_captures':self.game.x_captures, 'o_captures':self.game.o_captures})
         return move
 
     def ai2turn(self, state):
         startingState = copy.deepcopy(state)
         move = self.ai2.turn(state, self.game)
-        self.history.append({'player': self.ai2.player, 'previousState': startingState, 'nextState':state, 'move': move})
+        self.history.append({'player': self.ai2.player, 'previousState': startingState, 'nextState':state, 'move': move, 'x_captures':self.game.x_captures, 'o_captures':self.game.o_captures})
         return move
 
     def begin(self):
@@ -46,7 +46,7 @@ class Game:
             self.game.gsc = lastState
             self.game.gsf = lastState
 
-            return json.dumps(lastState)
+            return json.dumps({'state':lastState, 'x_captures':last['x_captures'], 'o_captures':last['o_captures']})
         else:
             return None
 
@@ -60,7 +60,7 @@ class Game:
             self.game.gsc = lastState
             self.game.gsf = lastState
 
-            return json.dumps(lastState)
+            return json.dumps({'state':lastState, 'x_captures':last['x_captures'], 'o_captures':last['o_captures']})
         else:
             return None
 
@@ -74,7 +74,7 @@ class Game:
             if self.game.currentPlayer == self.ai1.player:
                 break
 
-        return json.dumps(self.game.gsf)
+        return json.dumps({'state':self.game.gsf, 'x_captures':self.game.x_captures, 'o_captures':self.game.o_captures})
 
     @cherrypy.expose
     def index(self):
@@ -94,6 +94,12 @@ class Game:
             <div id="controls" style="display:flex">
                 <button id="back" style="width:100%">Back</button>
                 <button id="next" style="width:100%">Next</button>
+            </div>
+            <div id="scores" style="display:flex">
+                <span style="margin-top: 10px;font-weight: bold;">Black Captures</span>
+                <span id="o_score" style="margin:10px">0</span>
+                <span style="margin-top: 10px;font-weight: bold;">White Captures</span>
+                <span id="x_score" style="margin:10px">0</span>
             </div>
           </body>
           <footer><script type="text/javascript">{0}</script></footer>
