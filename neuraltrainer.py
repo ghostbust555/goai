@@ -29,9 +29,9 @@ class SavedGame:
 class NeuralTrainer:
     boardSize = 9
 
-    batch_size = 128
+    batch_size = 120
     nb_output = boardSize*boardSize
-    nb_epoch = 20
+    nb_epoch = 50
     rows, cols = boardSize, boardSize
     # number of convolutional filters to use
     nb_1_filters = 32
@@ -50,7 +50,7 @@ class NeuralTrainer:
     def loadFile(self):
         savedGames = []
         count = 0
-        take = 10
+        take = 100000
 
         with open("combined9x9.sgf", encoding='utf16') as file:
 
@@ -62,7 +62,7 @@ class NeuralTrainer:
 
                 elif line.startswith("----------"):
                     savedGames.append(self.processGame(game))
-                    if(count >= take):
+                    if count >= take:
                         break
 
                     count+=1
@@ -210,10 +210,11 @@ class NeuralTrainer:
 
         return sg
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
+dir_path = os.path.dirname(os.path.realpath(__file__))+"\\openblas"
 if os.name == "nt":
-    theano.config.blas.ldflags = "-L"+dir_path+"/mkl -lmkl_core -lmkl_intel_thread -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_rt"
+    os.environ["PATH"] += os.pathsep + dir_path
+    theano.config.blas.ldflags = "-L"+dir_path+" -lopenblas"
     print('blas.ldflags=', theano.config.blas.ldflags)
+
 tnt = NeuralTrainer()
-# tnt.makeModelFunctional()
 tnt.loadFile()

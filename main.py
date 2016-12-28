@@ -66,6 +66,7 @@ class Game:
 
     @cherrypy.expose
     def move(self, x, y):
+        self.removedHistory = []
         self.ai1.makeMove(int(x), int(y))
 
         while True:

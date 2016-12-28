@@ -60,8 +60,7 @@ class AI:
         available = self.availableMoves(gamestate)
 
         rank = []
-        for moveIdx in range(len(available)):
-            move = available[moveIdx]
+        for move in available:
             res = aiutils.montecarlo(move, self.boardsize, gamestate, self.player, self.otherPlayer, TRIES_PER_STATE)
             rank.append(res)
 
@@ -84,9 +83,7 @@ class AI:
             available = self.availableMoves(gamestate)
 
             with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
-                for moveIdx in range(len(available)):
-                    move = available[moveIdx]
-
+                for move in available:
                     futures.append(executor.submit(aiutils.montecarlo, move, self.boardsize, gamestate, self.player, self.otherPlayer, TRIES_PER_STATE))
 
             results = list(wait(futures).done)
