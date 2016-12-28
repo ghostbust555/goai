@@ -1,3 +1,4 @@
+import copy
 from threading import Thread
 
 import time
@@ -17,8 +18,51 @@ class Game:
     ai1 = None
     ai2 = None
 
+    history = []
+    removedHistory = []
+
+    def ai1turn(self, state):
+        startingState = copy.deepcopy(state)
+        move = self.ai1.turn(state, self.game)
+        self.history.append({'player':self.ai1.player, 'previousState': startingState, 'nextState':state, 'move':move, 'x_captures':self.game.x_captures, 'o_captures':self.game.o_captures})
+        return move
+
+    def ai2turn(self, state):
+        startingState = copy.deepcopy(state)
+        move = self.ai2.turn(state, self.game)
+        self.history.append({'player': self.ai2.player, 'previousState': startingState, 'nextState':state, 'move': move, 'x_captures':self.game.x_captures, 'o_captures':self.game.o_captures})
+        return move
+
     def begin(self):
-        self.game.begin(lambda state: self.ai1.turn(state, self.game), lambda state: self.ai2.turn(state, self.game), None, 'x', True, boardsize)
+        self.game.begin(self.ai1turn, self.ai2turn, None, 'x', True, boardsize)
+
+    @cherrypy.expose
+    def back(self):
+        if len(self.history) > 0:
+            last = self.history.pop()
+            self.removedHistory.append(last)
+
+            lastState = copy.deepcopy(last['previousState'])
+            self.game.gsc = lastState
+            self.game.gsf = lastState
+
+            return json.dumps({'state':lastState, 'x_captures':last['x_captures'], 'o_captures':last['o_captures']})
+        else:
+            return None
+
+    @cherrypy.expose
+    def next(self):
+        if len(self.removedHistory) > 0:
+            last = self.removedHistory.pop()
+            self.history.append(last)
+
+            lastState = copy.deepcopy(last['nextState'])
+            self.game.gsc = lastState
+            self.game.gsf = lastState
+
+            return json.dumps({'state':lastState, 'x_captures':last['x_captures'], 'o_captures':last['o_captures']})
+        else:
+            return None
 
     @cherrypy.expose
     def move(self, x, y):
@@ -30,7 +74,7 @@ class Game:
             if self.game.currentPlayer == self.ai1.player:
                 break
 
-        return json.dumps(self.game.gsf)
+        return json.dumps({'state':self.game.gsf, 'x_captures':self.game.x_captures, 'o_captures':self.game.o_captures})
 
     @cherrypy.expose
     def index(self):
@@ -40,15 +84,25 @@ class Game:
         return """<html>
           <head>
             <script src="http://code.jquery.com/jquery-latest.min.js" type="text/javascript"></script>
-            <link href="/static/css/style.css" rel="stylesheet">
           </head>
-          <body>
+          <body style="width:500px">
             <div id="main">
                 <img id="board" src="http://go.alamino.net/aprendajogargo/images/Blank_Go_board_9x9.png" width="500" height="500"/>
 
-                <script type="text/javascript">{0}</script>
+
+            </div>
+            <div id="controls" style="display:flex">
+                <button id="back" style="width:100%">Back</button>
+                <button id="next" style="width:100%">Next</button>
+            </div>
+            <div id="scores" style="display:flex">
+                <span style="margin-top: 10px;font-weight: bold;">Black Captures</span>
+                <span id="o_score" style="margin:10px">0</span>
+                <span style="margin-top: 10px;font-weight: bold;">White Captures</span>
+                <span id="x_score" style="margin:10px">0</span>
             </div>
           </body>
+          <footer><script type="text/javascript">{0}</script></footer>
         </html>
         """.format(js)
 

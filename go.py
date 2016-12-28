@@ -13,8 +13,8 @@ class Go:
     o_points = []
     x_points = []
 
-    o_captures = []
-    x_captures = []
+    o_captures = 0
+    x_captures = 0
 
     currentPlayer = 'x'
 
@@ -119,7 +119,7 @@ class Go:
 
                 #queue.extend(Go.getAdjacentDiagonal(x, y, self.boardsize))
 
-        return visited, captured
+        return visited, captured, xoro
 
     def removeGroup(self,group,state):
         for m in group:
@@ -134,9 +134,15 @@ class Go:
         for x in range(len(state)):
             for y in range(len(state[x])):
                 if seenBoard[x][y] == '-' and state[x][y] != '-':
-                    group, captured = self.findMyGroup(x, y, state)
-                    if captured:
+                    group, captured, xoro = self.findMyGroup(x, y, state)
+                    if captured and xoro != self.currentPlayer:
                         self.removeGroup(group,state)
+
+                        if xoro == 'x':
+                            self.x_captures += len(group)
+                        else:
+                            self.o_captures += len(group)
+
                     elif state[x][y] == 'x':
                         self.x_groups.append(group)
                     elif state[x][y] == 'o':
