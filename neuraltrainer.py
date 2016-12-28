@@ -49,6 +49,8 @@ class NeuralTrainer:
 
     def loadFile(self):
         savedGames = []
+        count = 0
+        take = 10
 
         with open("combined9x9.sgf", encoding='utf16') as file:
 
@@ -60,6 +62,10 @@ class NeuralTrainer:
 
                 elif line.startswith("----------"):
                     savedGames.append(self.processGame(game))
+                    if(count >= take):
+                        break
+
+                    count+=1
                 else:
                     game += line
 
@@ -209,5 +215,5 @@ if os.name == "nt":
     theano.config.blas.ldflags = "-L"+dir_path+"/mkl -lmkl_core -lmkl_intel_thread -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_rt"
     print('blas.ldflags=', theano.config.blas.ldflags)
 tnt = NeuralTrainer()
-tnt.makeModelFunctional()
+# tnt.makeModelFunctional()
 tnt.loadFile()
