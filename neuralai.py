@@ -32,6 +32,7 @@ MAX_WORKERS = 7
 
 USE_MUTITHREAD = True
 
+savednetwork = "savedNetwork-gpu"
 
 class NeuralAI:
     player = ''
@@ -39,16 +40,17 @@ class NeuralAI:
     boardsize = 9
     model = None
 
+
     def __init__(self, player, boardsize):
         self.player = player
         self.otherPlayer = 'o' if player == 'x' else 'x'
         self.boardsize = boardsize
 
         data = ""
-        with open('savedNetwork.json') as jsonfile:
+        with open(savednetwork+'.json') as jsonfile:
             data = jsonfile.read().replace('\n', '')
         self.model = keras.models.model_from_json(data)
-        self.model.load_weights("savedNetwork.h5")
+        self.model.load_weights(savednetwork+".h5")
 
         dir_path = os.path.dirname(os.path.realpath(__file__))+"\\openblas"
         if os.name == "nt":

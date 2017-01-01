@@ -17,7 +17,7 @@ import go
 np.random.seed(1337)  # for reproducibility
 
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten, advanced_activations
+from keras.layers import Dense, Dropout, Activation, Flatten, advanced_activations, UpSampling2D, Reshape
 from keras.layers import Convolution2D, MaxPooling2D
 
 
@@ -29,7 +29,7 @@ class SavedGame:
 class NeuralTrainer:
     boardSize = 9
 
-    batch_size = 120
+    batch_size = 50
     nb_output = boardSize*boardSize
     nb_epoch = 50
     rows, cols = boardSize, boardSize
@@ -50,7 +50,7 @@ class NeuralTrainer:
     def loadFile(self):
         savedGames = []
         count = 0
-        take = 100000
+        take = 1000000
 
         with open("combined9x9.sgf", encoding='utf16') as file:
 
@@ -68,7 +68,6 @@ class NeuralTrainer:
                     count+=1
                 else:
                     game += line
-
         shuffle(savedGames)
         self.trainOnGames(savedGames)
 
@@ -96,7 +95,7 @@ class NeuralTrainer:
             return "pass"
 
         x, y = aiutils.alphaToXY(moveVal)
-        empty[x][y] = 1
+        empty[x][y] = 1 if savedGame.winner == move[0] else .5
         self.outputStates.append([empty])
 
         return x, y
@@ -120,17 +119,52 @@ class NeuralTrainer:
         t3 = MaxPooling2D((3, 3), strides=(1, 1), border_mode='same')(input)
         tower_3 = Convolution2D(32, 1, 1, border_mode='same')(t3)
 
-        tower_4 = Convolution2D(16, 1, 1, border_mode='same')(input)
+        tower_4 = Convolution2D(32, 1, 1, border_mode='same')(input)
 
         return merge([tower_1, tower_2, tower_3, tower_4, input], mode='concat', concat_axis=1)
 
 
-    def makeModelFunctional(self, input):
+    def makeModelFunctionalInception(self, input):
         x = self.inceptionFunctional(input)
         x = advanced_activations.SReLU()(x)
-        # x = self.inceptionFunctional(x)
-        # x = advanced_activations.SReLU()(x)
         x = Convolution2D(32, 3, 3, border_mode='valid')(x)
+        x = MaxPooling2D(pool_size=self.pool_size)(x)
+        x = Flatten()(x)
+        x = Dense(512, activation='relu')(x)
+        x = Dense(256, activation='relu')(x)
+        x = Dropout(.2)(x)
+        x = Dense(self.nb_output, activation='softmax')(x)
+
+        self.model = Model(input=input, output=x)
+        self.model.compile(loss='categorical_crossentropy',
+                           optimizer='adadelta',
+                           metrics=['accuracy'])
+
+    def makeModelFunctional(self, input):
+        x = Convolution2D(32, 1, 1, activation='linear', border_mode='valid')(input)
+        x = Convolution2D(64, 5, 5, activation='relu', border_mode='same')(x)
+        x = Convolution2D(64, 3, 3, activation='relu', border_mode='valid')(x)
+        x = Flatten()(x)
+        x = Dense(512, activation='relu')(x)
+        x = Dense(256, activation='relu')(x)
+        x = Dense(81, activation='relu')(x)
+        x = Reshape((1, 9, 9))(x)
+
+        x = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(x)
+        x = Dropout(.15)(x)
+        x = Convolution2D(32, 1, 1, activation='relu', border_mode='same')(x)
+        x = Convolution2D(1, 1, 1, activation='sigmoid', border_mode='valid')(x)
+
+        self.model = Model(input=input, output=x)
+        self.model.compile(loss='categorical_crossentropy',
+                           optimizer='adadelta',
+                           metrics=['accuracy'])
+
+
+    def makeModelFunctionalSimple(self, input):
+        x = Convolution2D(64, 3, 1, border_mode='valid')(input)
+        x = Convolution2D(64, 1, 3, border_mode='valid')(x)
+        x = advanced_activations.SReLU()(x)
         x = MaxPooling2D(pool_size=self.pool_size)(x)
         x = Flatten()(x)
         x = Dense(512, activation='relu')(x)
@@ -157,6 +191,20 @@ class NeuralTrainer:
 
         return x_train, x_test, y_train, y_test
 
+    def getModelDataFormat2D(self, inputStates, outputStates):
+        take = int(len(inputStates)*.8)
+
+        x_train = inputStates[:take].astype('float32')
+        x_test = inputStates[take:].astype('float32')
+        y_train = (outputStates[:take]).astype('float32')
+        y_test = (outputStates[take:]).astype('float32')
+
+        print('X_train shape:', x_train.shape)
+        print(x_train.shape[0], 'train samples')
+        print(x_test.shape[0], 'test samples')
+
+        return x_train, x_test, y_train, y_test
+
     def trainOnGames(self, savedGames):
         for savedGame in savedGames:
             self.getGameAsBoardStates(savedGame)
@@ -166,13 +214,13 @@ class NeuralTrainer:
         input_shape = (1, self.rows, self.cols)
         inputLayer = Input(shape=input_shape)
 
-        self.makeModelFunctional(inputLayer)
+        self.makeModelFunctionalSimple(inputLayer)
 
         model_json = self.model.to_json()
-        with open("savedNetwork.json", "w") as json_file:
+        with open(savepath+".json", "w") as json_file:
             json_file.write(model_json)
 
-        checkpointer = ModelCheckpoint(filepath="savedNetwork.h5", verbose=1, save_best_only=True)
+        checkpointer = ModelCheckpoint(filepath=savepath+".h5", verbose=1, save_best_only=True)
         self.model.fit(x_train, y_train, batch_size=self.batch_size, nb_epoch=self.nb_epoch, verbose=1, validation_data=(x_test, y_test), callbacks=[checkpointer])
         score = self.model.evaluate(x_test, y_test, verbose=0)
         print('Test score:', score[0])
@@ -216,5 +264,6 @@ if os.name == "nt":
     theano.config.blas.ldflags = "-L"+dir_path+" -lopenblas"
     print('blas.ldflags=', theano.config.blas.ldflags)
 
+savepath = "savedNetwork-gpu"
 tnt = NeuralTrainer()
 tnt.loadFile()

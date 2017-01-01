@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 import go
 import randomai
@@ -30,6 +31,13 @@ def vectorToMoves(state):
         bestMoveLocations.append([math.floor(index / boardsize), math.floor(index % boardsize), state[0][index]])
 
     return bestMoveLocations
+
+def vectorToMoves2D(state):
+    state = (state[0][0])
+    state = np.array(state).flatten()
+    state=state.tolist()
+    return vectorToMoves([state])
+
 
 def montecarlo(currentMove, boardsize, gamestate, player, otherPlayer, TRIES_PER_STATE):
     score = 0
