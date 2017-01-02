@@ -235,10 +235,10 @@ class Go:
             self.x_points = myscore
             self.o_points = enemyscore
 
-        # if myscore + 15 < enemyscore:
-        #     self.gameover = 1
+        if self.score_cap != -1 and myscore + self.score_cap < enemyscore:
+            self.gameover = 1
 
-    def begin(self, player1turn, player2turn, initialState=None, startingPlayer='x', showOutput = False, board_size=9):
+    def begin(self, player1turn, player2turn, initialState=None, startingPlayer='x', showOutput = False, board_size=9, score_cap=-1):
         self.boardsize = board_size
 
         ## Creates a blank game state - a blank board
@@ -254,6 +254,10 @@ class Go:
         self.gameover = 0
         self.o_points = 0
         self.x_points = 0
+
+        myscore, enemyscore = self.getScores(self.gsc, startingPlayer)
+        self.score_cap = score_cap + (myscore - enemyscore)
+
 
         ## Gives players turns until the end of the game
         ## (that is, until both players pass, one after

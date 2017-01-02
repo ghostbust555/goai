@@ -115,6 +115,7 @@ if __name__ == '__main__':
 
     g.ai1 = humanplayer.HumanPlayer('x', boardsize)
     g.ai2 = neuralai.NeuralAI('o', boardsize)
+    # g.ai2 = ai.AI('o', boardsize)
 
     Thread(target=g.begin, args=[]).start()
     cherrypy.quickstart(g)

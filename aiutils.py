@@ -49,7 +49,7 @@ def montecarlo(currentMove, boardsize, gamestate, player, otherPlayer, TRIES_PER
         if place(player, newstate, currentMove[0], currentMove[1]):
 
             game = go.Go()
-            res = game.begin(lambda state: ai1.turn(state, game), lambda state: ai2.turn(state, game), newstate, otherPlayer, False, boardsize)
+            res = game.begin(lambda state: ai1.turn(state, game), lambda state: ai2.turn(state, game), newstate, otherPlayer, False, boardsize, 8)
 
             if res == player:
                 score += 1
