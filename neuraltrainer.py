@@ -4,6 +4,9 @@ import os
 import re
 from random import shuffle
 
+#os.environ['KERAS_BACKEND'] = "theano"
+#os.environ['THEANO_FLAGS'] = "device=cpu"
+
 import numpy as np
 import theano
 from keras.callbacks import ModelCheckpoint
@@ -11,13 +14,14 @@ from keras.engine import Input
 from keras.engine import Merge
 from keras.engine import Model
 from keras.engine import merge
+from keras.regularizers import l2
 
 import aiutils
 import go
 np.random.seed(1337)  # for reproducibility
 
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten, advanced_activations, UpSampling2D, Reshape
+from keras.layers import Dense, Dropout, Activation, Flatten, advanced_activations, UpSampling2D, Reshape, BatchNormalization, AveragePooling2D, GlobalAveragePooling2D
 from keras.layers import Convolution2D, MaxPooling2D
 
 
@@ -29,9 +33,9 @@ class SavedGame:
 class NeuralTrainer:
     boardSize = 9
 
-    batch_size = 50
+    batch_size = 150
     nb_output = boardSize*boardSize
-    nb_epoch = 50
+    nb_epoch = 100
     rows, cols = boardSize, boardSize
     # number of convolutional filters to use
     nb_1_filters = 32
@@ -123,6 +127,50 @@ class NeuralTrainer:
 
         return merge([tower_1, tower_2, tower_3, tower_4, input], mode='concat', concat_axis=1)
 
+    def denseBlock(self, x, num_layers, nb_filter, growth_rate, weight_decay=1E-4):
+
+        layers = []
+
+        for i in range(num_layers):
+            x = Convolution2D(nb_filter, 1, 1, init='he_uniform', border_mode='same', bias=False, W_regularizer=l2(weight_decay))(x)
+
+            x = BatchNormalization(mode=0, axis=1, gamma_regularizer=l2(weight_decay), beta_regularizer=l2(weight_decay))(x)
+            x = Activation('relu')(x)
+
+            x = Convolution2D(nb_filter, 3, 3, init="he_uniform", border_mode="same", bias=False, W_regularizer=l2(weight_decay))(x)
+            x = Activation("relu")(x)
+
+            layers.append(x)
+
+            if len(layers) > 1:
+                x = merge(layers, mode='concat', concat_axis=1)
+
+            nb_filter += growth_rate
+
+        return x
+
+    def makeModelFunctionalDense(self, input):
+        weight_decay = 1E-4
+
+        x = Convolution2D(32, 3, 3, border_mode='valid')(input)
+        x = self.denseBlock(x,6,16,10)
+
+        x = BatchNormalization(mode=0, axis=1, gamma_regularizer=l2(weight_decay), beta_regularizer=l2(weight_decay))(x)
+        x = AveragePooling2D((2, 2), strides=(2, 2))(x)
+
+        x = self.denseBlock(x, 8, 16, 10)
+
+        x = Dropout(.2)(x)
+
+        x = GlobalAveragePooling2D((3,3))(x)
+
+#        x = Flatten()(x)
+        x = Dense(self.nb_output, activation='softmax')(x)
+
+        self.model = Model(input=input, output=x)
+        self.model.compile(loss='categorical_crossentropy',
+                           optimizer='adadelta',
+                           metrics=['accuracy'])
 
     def makeModelFunctionalInception(self, input):
         x = self.inceptionFunctional(input)
@@ -214,7 +262,7 @@ class NeuralTrainer:
         input_shape = (1, self.rows, self.cols)
         inputLayer = Input(shape=input_shape)
 
-        self.makeModelFunctionalSimple(inputLayer)
+        self.makeModelFunctionalDense(inputLayer)
 
         model_json = self.model.to_json()
         with open(savepath+".json", "w") as json_file:
@@ -227,7 +275,7 @@ class NeuralTrainer:
         print('Test accuracy:', score[1])
 
         # serialize weights to HDF5
-        self.model.save_weights("savedNetwork.h5")
+        self.model.save_weights(savepath+".h5")
 
         pass
 

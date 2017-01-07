@@ -2,6 +2,10 @@ import copy
 from threading import Thread
 
 import time
+import os
+
+os.environ['KERAS_BACKEND'] = "theano"
+os.environ['THEANO_FLAGS'] = "device=cpu"
 
 import ai
 import humanplayer
