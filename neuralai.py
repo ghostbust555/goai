@@ -32,7 +32,7 @@ MAX_WORKERS = 7
 
 USE_MUTITHREAD = True
 
-savednetwork = "savedNetwork-gpu"
+savednetwork = "savedNetwork-inceptionnet"
 
 class NeuralAI:
     player = ''
