@@ -86,3 +86,8 @@ next.onclick = function (evt) {
     waiting = true;
     $.get("/next").done(updateBoard);
 };
+
+reset.onclick = function (evt) {
+    waiting = true;
+    $.get("/reset").done(updateBoard);
+};

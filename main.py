@@ -25,6 +25,7 @@ class Game:
     history = []
     removedHistory = []
 
+
     def ai1turn(self, state):
         startingState = copy.deepcopy(state)
         move = self.ai1.turn(state, self.game)
@@ -69,6 +70,19 @@ class Game:
             return None
 
     @cherrypy.expose
+    def reset(self):
+        self.removedHistory = []
+        self.history = []
+
+        self.game.gsc = self.game.initalize()
+        self.game.gsf = self.game.initalize()
+
+        self.game.o_captures = 0
+        self.game.x_captures = 0
+
+        return json.dumps({'state': self.game.gsc, 'x_captures': 0, 'o_captures': 0})
+
+    @cherrypy.expose
     def move(self, x, y):
         self.removedHistory = []
         self.ai1.makeMove(int(x), int(y))
@@ -93,12 +107,11 @@ class Game:
           <body style="width:500px">
             <div id="main">
                 <img id="board" src="http://go.alamino.net/aprendajogargo/images/Blank_Go_board_9x9.png" width="500" height="500"/>
-
-
             </div>
             <div id="controls" style="display:flex">
                 <button id="back" style="width:100%">Back</button>
                 <button id="next" style="width:100%">Next</button>
+                <button id="reset" style="width:100%">Reset</button>
             </div>
             <div id="scores" style="display:flex">
                 <span style="margin-top: 10px;font-weight: bold;">Black Captures</span>
@@ -121,5 +134,9 @@ if __name__ == '__main__':
     g.ai2 = neuralai.NeuralAI('o', boardsize)
     # g.ai2 = ai.AI('o', boardsize)
 
-    Thread(target=g.begin, args=[]).start()
+    g.t = Thread(target=g.begin, args=[])
+    g.t.start()
+
+    cherrypy.config.update(
+        {'server.socket_host': '0.0.0.0'})
     cherrypy.quickstart(g)
